@@ -55,7 +55,7 @@ function Ensure-TrustedLocation([string]$Folder) {
 }
 
 Write-Step 'xlam 파일 확인'
-$latest = Get-ChildItem -LiteralPath $repo -Filter '*.xlam' -File |
+$latest = Get-ChildItem -LiteralPath $repo -Filter 'BX-*.xlam' -File |
     Sort-Object LastWriteTime -Descending |
     Select-Object -First 1
 
