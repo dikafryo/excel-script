@@ -25,6 +25,35 @@ function Write-Step([string]$Text) {
     Write-Host "== $Text" -ForegroundColor Cyan
 }
 
+function Ensure-TrustedLocation([string]$Folder) {
+    $base = 'HKCU:\Software\Microsoft\Office\16.0\Excel\Security\Trusted Locations'
+    if (-not (Test-Path -LiteralPath $base)) {
+        New-Item -Path $base -Force | Out-Null
+    }
+
+    $normalized = $Folder.TrimEnd('\')
+    foreach ($child in Get-ChildItem -LiteralPath $base) {
+        $value = Get-ItemProperty -LiteralPath $child.PSPath
+        if ($value.Path -and ($value.Path.TrimEnd('\') -ieq $normalized)) {
+            return
+        }
+    }
+
+    $i = 0
+    while (Test-Path -LiteralPath (Join-Path $base "Location$i")) {
+        $i++
+    }
+
+    $key = Join-Path $base "Location$i"
+    New-Item -Path $key -Force | Out-Null
+    New-ItemProperty -Path $key -Name Path -Value ($normalized + '\') -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $key -Name AllowSubFolders -Value 0 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $key -Name Description -Value 'BX-XLAM AddIns' -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $key -Name Date -Value (Get-Date).ToString('MM/dd/yyyy HH:mm') -PropertyType String -Force | Out-Null
+
+    Write-Host "신뢰할 수 있는 위치 추가: $normalized"
+}
+
 Write-Step 'xlam 파일 확인'
 $latest = Get-ChildItem -LiteralPath $repo -Filter '*.xlam' -File |
     Sort-Object LastWriteTime -Descending |
@@ -49,10 +78,19 @@ if ($sig[0] -ne 0x50 -or $sig[1] -ne 0x4B) {
 
 Write-Host "대상 파일: $($latest.Name) ($([Math]::Round($latest.Length / 1MB, 2)) MB, $($latest.LastWriteTime))"
 
+try {
+    Unblock-File -LiteralPath $latest.FullName -ErrorAction Stop
+}
+catch {
+    Write-Warning "원본 파일 차단 해제 실패: $($_.Exception.Message)"
+}
+
 Write-Step 'AddIns 폴더에 설치'
 if (-not (Test-Path -LiteralPath $addins)) {
     New-Item -ItemType Directory -Path $addins -Force | Out-Null
 }
+
+Ensure-TrustedLocation $addins
 
 $target = Join-Path $addins $latest.Name
 $excel = Get-Process -Name EXCEL -ErrorAction SilentlyContinue
@@ -63,6 +101,7 @@ if ($excel) {
 $copyOk = $false
 try {
     Copy-Item -LiteralPath $latest.FullName -Destination $target -Force
+    Unblock-File -LiteralPath $target -ErrorAction SilentlyContinue
     $copyOk = $true
     Write-Host "복사 완료: $target"
     Write-Host 'Excel을 다시 시작하면 새 버전이 반영됩니다.'
