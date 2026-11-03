@@ -8,7 +8,7 @@ Option Explicit
 Private Const C_NAVY As Long = &H67401A
 Private Const C_TEXT As Long = &H1C1C1E
 
-Public Sub U2_Start()
+Public Sub U2_Start(Optional ByVal pick As Boolean = True)
     Dim wb As Workbook
 
     On Error GoTo EH
@@ -26,7 +26,7 @@ Public Sub U2_Start()
     Application.ScreenUpdating = True
     Application.DisplayAlerts = True
     wb.Worksheets(U2_SH_GUIDE).Activate
-    U2_PickAndImport
+    If pick Then U2_PickAndImport
     Exit Sub
 
 EH:
