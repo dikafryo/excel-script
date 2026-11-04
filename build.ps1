@@ -1,8 +1,8 @@
 ﻿<#
-  B-XLAM 빌드 스크립트
+  neisXLS 빌드 스크립트
 
   template.xlam 을 복사한 뒤 src 폴더의 VBA 모듈을 모두 다시 넣어
-  build\BX-v8.xlam 을 만듭니다.
+  build\neisXLS.xlam 을 만듭니다.
 #>
 [CmdletBinding()]
 param(
@@ -12,7 +12,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repo = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($Output)) {
-    $Output = Join-Path $repo 'BX-v8.xlam'
+    $Output = Join-Path $repo 'neisXLS.xlam'
 }
 $src = Join-Path $repo 'src'
 $srcEnc = Join-Path $repo 'build\src_cp949'

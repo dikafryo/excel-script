@@ -18,7 +18,7 @@ Public Const NOTE_B As String = "최신년도 산출내역 미반영 가능성" 
 Public Const NOTE_C As String = "예산현황과 산출내역 금액 확인 필요"
 Public gBX_NoUI As Boolean        '자체 점검(BX_SelfTest) 중: 대화상자 없이 실행 (확인 질문은 '예'로 처리)
 Public gBX_DupWarn As String      '자체 점검 중 표시하지 않은 중복 경고 (파일명 vbTab 문구, 여러 건은 vbLf+vbLf 로 구분)
-Public Const DUP_TITLE As String = "B-XLAM V8 · 중복 파일"
+Public Const DUP_TITLE As String = "neisXLS · 중복 파일"
 
 '---------------------------------------------------------------- 등록 정보
 Public Function SuppCount() As Long
@@ -1067,7 +1067,7 @@ Private Function AskYN(ByVal prompt As String, ByVal buttons As VbMsgBoxStyle, B
 End Function
 
 '---------------------------------------------------------------- V8 자체 점검 (숨김 진입점, 대화상자 없음)
-'  Application.Run "'BX-v8.xlam'!BX_SelfTest", 폴더, 결과파일(.xlsx)
+'  Application.Run "'neisXLS.xlam'!BX_SelfTest", 폴더, 결과파일(.xlsx)
 '  폴더의 데모 파일로 본예산 → 장표 → 2차 → 1차(차수 순서와 다르게 추가) → 1차 사본(중복 시도) 을 실행하고 결과 통합문서를 저장한다.
 '  반환: 결과 요약 (줄마다 "항목=값")
 Public Function BX_SelfTest(ByVal folder As String, ByVal outFile As String) As String
@@ -1086,7 +1086,7 @@ Public Function BX_SelfTest(ByVal folder As String, ByVal outFile As String) As 
     BX_SelfTest = r
 End Function
 
-'  Application.Run "'BX-v8.xlam'!BX_SelfTestFiles", 본예산파일, "추경1|추경2|...", 장표파일, 결과파일, 비공개(True = 사업명 등 내용 없이 집계만 반환)
+'  Application.Run "'neisXLS.xlam'!BX_SelfTestFiles", 본예산파일, "추경1|추경2|...", 장표파일, 결과파일, 비공개(True = 사업명 등 내용 없이 집계만 반환)
 '  추경 파일은 적은 순서대로 추가 (차수는 파일 내용으로 판단 · 차수 순서로 재정렬)
 Public Function BX_SelfTestFiles(ByVal baseFile As String, ByVal suppList As String, ByVal jangFile As String, ByVal outFile As String, _
                                  Optional ByVal privateMode As Boolean = True) As String

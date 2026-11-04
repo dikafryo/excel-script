@@ -6,9 +6,9 @@ Option Explicit
 '   - 실행 전 계산방식·이벤트·화면갱신·알림·상태표시줄·자동화보안을 보관하고 종료 시 복원한다.
 '   - 삭제·치환 계열 기능은 실행 직전에 활성 시트를 숨김 백업 시트로 복사한다(최근 3개 보관).
 ' =====================================================================================
-Public Const APP_VERSION As String = "8.1"
-Public Const APP_BUILD As String = "2026-10-17"
-Private Const CFG_AppTitle As String = "B-XLAM V8"
+Public Const APP_VERSION As String = "v26.1104.1"
+Public Const APP_BUILD As String = "2026-11-04"
+Private Const CFG_AppTitle As String = "neisXLS"
 Public BX_Silent As Boolean   ' 검증용: True 면 선택 폼을 띄우지 않고 0(취소) 반환
 Public BX_Trace As String    ' 진단용: 긴 작업의 현재 단계
 Private Const BACKUP_PREFIX As String = "백업_"
@@ -32,8 +32,8 @@ End Sub
 
 'V8: 예산보드 시트 [버전 정보] 버튼
 Public Sub 버전정보()
-    MsgBox "B-XLAM V" & APP_VERSION & "  (빌드 " & APP_BUILD & ")" & vbCrLf & vbCrLf & _
-           "V8 새 기능" & vbCrLf & _
+    MsgBox "neisXLS " & APP_VERSION & "  (빌드 " & APP_BUILD & ")" & vbCrLf & vbCrLf & _
+           "주요 기능" & vbCrLf & _
            " - 추경예산 추가: 1차, 2차, 3차 ... 차수 제한 없이 추가, 차수별 색 구분" & vbCrLf & _
            " - 차수는 파일 내용(제목 · 기정액)으로 판단해 차수 순서로 정렬 (추가 순서 · 파일 이름 무관)" & vbCrLf & _
            " - 추가할 때마다 중복 파일 · 연도 · 차수 · 장표 금액 점검 (추경 점검표 한 장에 차수별 정리)" & vbCrLf & _

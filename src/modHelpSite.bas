@@ -9,7 +9,7 @@ Sub OpenHelpWebsite(control As IRibbonControl)
     Exit Sub
 Fail:
     MsgBox "도움말 사이트를 열 수 없습니다." & vbCrLf & url & vbCrLf & vbCrLf & _
-           "브라우저에서 위 주소를 직접 열어 주세요. (" & Err.Description & ")", vbExclamation, "B-XLAM V8"
+           "브라우저에서 위 주소를 직접 열어 주세요. (" & Err.Description & ")", vbExclamation, "neisXLS"
 End Sub
 
 

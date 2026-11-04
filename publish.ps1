@@ -1,5 +1,5 @@
 ﻿<#
-  B-XLAM xlam 배포 스크립트
+  neisXLS xlam 배포 스크립트
 
   동작
   1. 이 폴더에서 가장 최근에 만들어진 .xlam 파일을 찾습니다.
@@ -48,14 +48,14 @@ function Ensure-TrustedLocation([string]$Folder) {
     New-Item -Path $key -Force | Out-Null
     New-ItemProperty -Path $key -Name Path -Value ($normalized + '\') -PropertyType String -Force | Out-Null
     New-ItemProperty -Path $key -Name AllowSubFolders -Value 0 -PropertyType DWord -Force | Out-Null
-    New-ItemProperty -Path $key -Name Description -Value 'BX-XLAM AddIns' -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $key -Name Description -Value 'neisXLS AddIns' -PropertyType String -Force | Out-Null
     New-ItemProperty -Path $key -Name Date -Value (Get-Date).ToString('MM/dd/yyyy HH:mm') -PropertyType String -Force | Out-Null
 
     Write-Host "신뢰할 수 있는 위치 추가: $normalized"
 }
 
 Write-Step 'xlam 파일 확인'
-$latest = Get-ChildItem -LiteralPath $repo -Filter 'BX-*.xlam' -File |
+$latest = Get-ChildItem -LiteralPath $repo -Filter 'neisXLS*.xlam' -File |
     Sort-Object LastWriteTime -Descending |
     Select-Object -First 1
 
@@ -105,6 +105,29 @@ try {
     $copyOk = $true
     Write-Host "복사 완료: $target"
     Write-Host 'Excel을 다시 시작하면 새 버전이 반영됩니다.'
+
+    $oldFile = Join-Path $addins 'BX-v8.xlam'
+    if (Test-Path -LiteralPath $oldFile) {
+        try {
+            Remove-Item -LiteralPath $oldFile -Force -ErrorAction Stop
+            Write-Host "이전 파일 제거: $oldFile"
+        }
+        catch {
+            Write-Warning "이전 BX-v8.xlam 파일을 지우지 못했습니다. Excel 종료 후 직접 삭제하세요: $oldFile"
+        }
+    }
+
+    $optKey = 'HKCU:\Software\Microsoft\Office\16.0\Excel\Options'
+    if (Test-Path -LiteralPath $optKey) {
+        $names = @('OPEN') + (1..9 | ForEach-Object { "OPEN$_" })
+        foreach ($name in $names) {
+            $val = (Get-ItemProperty -Path $optKey -Name $name -ErrorAction SilentlyContinue).$name
+            if ($val -and $val -match 'BX-v8\.xlam') {
+                New-ItemProperty -Path $optKey -Name $name -Value ('"' + $latest.Name + '"') -PropertyType String -Force | Out-Null
+                Write-Host "Excel 시작 파일 변경: $name -> $($latest.Name)"
+            }
+        }
+    }
 }
 catch {
     Write-Warning "AddIns 복사 실패: $($_.Exception.Message)"

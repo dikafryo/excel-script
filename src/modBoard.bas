@@ -111,7 +111,7 @@ Public Function BoardButtonsCurrent(wb As Workbook) As Boolean
     BoardButtonsCurrent = (OnActionBook(oa) = LCase$(ThisWorkbook.name)) And (oa Like "*!추경예산추가")
 End Function
 
-'버튼 OnAction 의 통합문서 이름 (Excel 은 '(폴더)\BX-v8.xlam'!매크로 처럼 전체 경로나 따옴표 없이 돌려줄 수 있음) → 파일 이름만, 소문자
+'버튼 OnAction 의 통합문서 이름 (Excel 은 '(폴더)\neisXLS.xlam'!매크로 처럼 전체 경로나 따옴표 없이 돌려줄 수 있음) → 파일 이름만, 소문자
 Public Function OnActionBook(ByVal oa As String) As String
     Dim p As Long
     p = InStrRev(oa, "!")
