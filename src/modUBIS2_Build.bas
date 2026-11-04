@@ -551,9 +551,9 @@ Private Sub U2_BuildExpense(ByVal wb As Workbook)
     unit = U2_UnitValue(opt("Unit"))
 
     U2_BuildNav ws
-    U2_Title ws, "세출예산", "담당자를 고르고 세부사업·세세부사업을 선택하면 해당 예산만 표시됩니다. (금액 단위: " & CStr(opt("Unit")) & ")", 33
+    U2_Title ws, "세출예산", "담당자와 사업을 고르면 아래에 세부 내역이 바로 표시됩니다. (금액 단위: " & CStr(opt("Unit")) & ")", 23
 
-    With ws.Range("A5")
+    With ws.Range("A6")
         .Value2 = "담당자"
         .Font.Name = "맑은 고딕"
         .Font.Size = 10
@@ -561,8 +561,8 @@ Private Sub U2_BuildExpense(ByVal wb As Workbook)
         .Font.Color = C_TEXT
         .VerticalAlignment = xlCenter
     End With
-    With ws.Range("A6")
-        .Value2 = "세부사업 / 세세부사업"
+    With ws.Range("E6")
+        .Value2 = "사업 목록 (세부사업 / 세세부사업)"
         .Font.Name = "맑은 고딕"
         .Font.Size = 10
         .Font.Bold = True
@@ -570,26 +570,43 @@ Private Sub U2_BuildExpense(ByVal wb As Workbook)
         .VerticalAlignment = xlCenter
     End With
 
-    ws.Range("AY1:BC500").Clear
+    ws.Range("AY1:BG500").Clear
     mgrLast = U2_FillManagerList(ws)
     U2_CreateExpenseControls ws, mgrLast
     U2_RebuildExpenseList ws
     U2_BuildExpenseDetail ws
 
-    ws.Columns("A").ColumnWidth = 3
-    ws.Columns("B:E").ColumnWidth = 18
-    ws.Columns("F").ColumnWidth = 24
-    ws.Columns("G").ColumnWidth = 24
-    ws.Columns("H:J").ColumnWidth = 24
-    ws.Columns("K").ColumnWidth = 11
-    ws.Columns("L").ColumnWidth = 14
-    ws.Columns("M:S").ColumnWidth = 13
-    ws.Columns("T").ColumnWidth = 12
-    ws.Columns("U").ColumnWidth = 16
-    ws.Columns("V:Z").ColumnWidth = 10
-    ws.Columns("AA").ColumnWidth = 14
-    ws.Columns("AB:AG").ColumnWidth = 18
-    ws.Columns("AY:BC").Hidden = True
+    ws.Columns("A").ColumnWidth = 18
+    ws.Columns("B").ColumnWidth = 18
+    ws.Columns("C:F").ColumnWidth = 14
+    ws.Columns("G").ColumnWidth = 9
+    ws.Columns("H").ColumnWidth = 12
+    ws.Columns("I:O").ColumnWidth = 10
+    ws.Columns("P").ColumnWidth = 9
+    ws.Columns("Q:U").ColumnWidth = 6
+    ws.Columns("V").ColumnWidth = 14
+    ws.Columns("W").ColumnWidth = 20
+    ws.Columns("AY:BG").Hidden = True
+    ws.Rows(6).RowHeight = 18
+    ws.Rows(7).RowHeight = 18
+    ws.Rows(8).RowHeight = 18
+    ws.Rows(9).RowHeight = 18
+    ws.Rows(10).RowHeight = 18
+    ws.Rows(11).RowHeight = 18
+    ws.Rows(12).RowHeight = 18
+    ws.Rows(13).RowHeight = 18
+
+    On Error Resume Next
+    ActiveWindow.Zoom = 75
+    On Error GoTo 0
+    With ws.PageSetup
+        .Orientation = xlLandscape
+        .PaperSize = xlPaperA4
+        .Zoom = False
+        .FitToPagesWide = 1
+        .FitToPagesTall = False
+        .PrintArea = "$A$1:$W$" & (14 + 20)
+    End With
 End Sub
 
 Private Function U2_FillManagerList(ByVal ws As Worksheet) As Long
@@ -598,6 +615,10 @@ Private Function U2_FillManagerList(ByVal ws As Worksheet) As Long
     Dim r As Long
     Dim k As Variant
     Dim opt As Object
+    Dim managers() As String
+    Dim n As Long
+    Dim n1 As Long
+    Dim n2 As Long
 
     Set opt = U2_ReadOptions()
     Set d = CreateObject("Scripting.Dictionary")
@@ -608,41 +629,69 @@ Private Function U2_FillManagerList(ByVal ws As Worksheet) As Long
         End If
     Next i
 
-    r = 2
+    n = d.Count
+    ReDim managers(1 To n)
+    i = 0
     For Each k In d.Keys
-        ws.Cells(r, "AY").Value2 = CStr(k)
-        r = r + 1
+        i = i + 1
+        managers(i) = CStr(k)
     Next k
-    If r = 2 Then
-        ws.Cells(2, "AY").Value2 = "전체"
-        r = 3
-    End If
-    U2_FillManagerList = r - 1
+
+    ws.Range("AY2:AZ500").ClearContents
+    n1 = (n + 1) \ 2
+    n2 = n - n1
+    For i = 1 To n1
+        ws.Cells(1 + i, "AY").Value2 = managers(i)
+    Next i
+    For i = 1 To n2
+        ws.Cells(1 + i, "AZ").Value2 = managers(n1 + i)
+    Next i
+    ws.Range("BF1").Value2 = 1 + n1
+    ws.Range("BG1").Value2 = 1 + n2
+    If n2 = 0 Then ws.Range("BG1").Value2 = 1
+    U2_FillManagerList = 1 + Application.Max(n1, n2)
 End Function
 
 Private Sub U2_CreateExpenseControls(ByVal ws As Worksheet, ByVal mgrLast As Long)
     Dim shp As Shape
-    Dim old As Shape
+    Dim last1 As Long
+    Dim last2 As Long
 
     On Error Resume Next
-    ws.Shapes("u2cboManager").Delete
+    ws.Shapes("u2lstManager1").Delete
+    ws.Shapes("u2lstManager2").Delete
     ws.Shapes("u2lstSub").Delete
     On Error GoTo 0
 
-    Set shp = ws.Shapes.AddFormControl(xlDropDown, 70, 94, 220, 22)
-    shp.Name = "u2cboManager"
+    last1 = CLng(U2_Num(ws.Range("BF1").Value2))
+    last2 = CLng(U2_Num(ws.Range("BG1").Value2))
+    If last1 < 2 Then last1 = 2
+    If last2 < 2 Then last2 = 2
+
+    Set shp = ws.Shapes.AddFormControl(xlListBox, 8, 125, 128, 90)
+    shp.Name = "u2lstManager1"
     shp.Placement = xlMove
-    shp.ControlFormat.ListFillRange = "$AY$2:$AY$" & mgrLast
-    shp.ControlFormat.LinkedCell = "$AZ$1"
-    shp.ControlFormat.DropDownLines = 12
+    shp.ControlFormat.ListFillRange = "$AY$2:$AY$" & last1
+    shp.ControlFormat.LinkedCell = "$BA$1"
     shp.ControlFormat.ListIndex = 1
-    shp.OnAction = "U2_ManagerChange"
+    shp.OnAction = "U2_Manager1Change"
     shp.ZOrder msoBringToFront
 
-    Set shp = ws.Shapes.AddFormControl(xlListBox, 10, 135, 300, 200)
+    Set shp = ws.Shapes.AddFormControl(xlListBox, 140, 125, 128, 90)
+    shp.Name = "u2lstManager2"
+    shp.Placement = xlMove
+    shp.ControlFormat.ListFillRange = "$AZ$2:$AZ$" & last2
+    shp.ControlFormat.LinkedCell = "$BB$1"
+    On Error Resume Next
+    shp.ControlFormat.ListIndex = -1
+    On Error GoTo 0
+    shp.OnAction = "U2_Manager2Change"
+    shp.ZOrder msoBringToFront
+
+    Set shp = ws.Shapes.AddFormControl(xlListBox, 290, 125, 320, 90)
     shp.Name = "u2lstSub"
     shp.Placement = xlMove
-    shp.ControlFormat.LinkedCell = "$BB$1"
+    shp.ControlFormat.LinkedCell = "$BE$1"
     shp.OnAction = "U2_SubListClick"
     shp.ZOrder msoBringToFront
 End Sub
@@ -672,32 +721,49 @@ Public Sub U2_RebuildExpenseList(Optional ByVal ws As Worksheet = Nothing)
         End If
     Next i
 
-    ws.Range("BA2:BC500").ClearContents
+    ws.Range("BC2:BD500").ClearContents
     r = 2
     For Each k In d.Keys
-        ws.Cells(r, "BA").Value2 = CStr(d(k))
-        ws.Cells(r, "BC").Value2 = CStr(k)
+        ws.Cells(r, "BC").Value2 = CStr(d(k))
+        ws.Cells(r, "BD").Value2 = CStr(k)
         r = r + 1
     Next k
     If r = 2 Then
-        ws.Cells(2, "BA").Value2 = "전체"
-        ws.Cells(2, "BC").Value2 = "ALL"
+        ws.Cells(2, "BC").Value2 = "전체"
+        ws.Cells(2, "BD").Value2 = "ALL"
         r = 3
     End If
 
     On Error Resume Next
     ws.Shapes("u2lstSub").OnAction = ""
-    ws.Shapes("u2lstSub").ControlFormat.ListFillRange = "$BA$2:$BA$" & (r - 1)
+    ws.Shapes("u2lstSub").ControlFormat.ListFillRange = "$BC$2:$BC$" & (r - 1)
     ws.Shapes("u2lstSub").ControlFormat.ListIndex = 1
     ws.Shapes("u2lstSub").OnAction = "U2_SubListClick"
     On Error GoTo 0
 End Sub
 
-Public Sub U2_ManagerChange()
+Public Sub U2_Manager1Change()
     Dim ws As Worksheet
     U2_EnsureDataLoaded
     Set ws = U2_GetSheet(U2_CurrentBook(), U2_SH_EXPENSE)
     If ws Is Nothing Then Exit Sub
+    On Error Resume Next
+    ws.Shapes("u2lstManager2").ControlFormat.ListIndex = -1
+    ws.Range("BB1").Value2 = 0
+    On Error GoTo 0
+    U2_RebuildExpenseList ws
+    U2_BuildExpenseDetail ws
+End Sub
+
+Public Sub U2_Manager2Change()
+    Dim ws As Worksheet
+    U2_EnsureDataLoaded
+    Set ws = U2_GetSheet(U2_CurrentBook(), U2_SH_EXPENSE)
+    If ws Is Nothing Then Exit Sub
+    On Error Resume Next
+    ws.Shapes("u2lstManager1").ControlFormat.ListIndex = -1
+    ws.Range("BA1").Value2 = 0
+    On Error GoTo 0
     U2_RebuildExpenseList ws
     U2_BuildExpenseDetail ws
 End Sub
@@ -721,6 +787,7 @@ Public Sub U2_BuildExpenseDetail(Optional ByVal ws As Worksheet = Nothing)
     Dim headers As Variant
     Dim unitLabel As String
     Dim rn As Long
+    Dim prevLast As Long
 
     If ws Is Nothing Then Set ws = U2_GetSheet(U2_CurrentBook(), U2_SH_EXPENSE)
     If ws Is Nothing Then Exit Sub
@@ -735,10 +802,10 @@ Public Sub U2_BuildExpenseDetail(Optional ByVal ws As Worksheet = Nothing)
     rn = U2_EffectiveRound(opt)
 
     If ws.AutoFilterMode Then ws.AutoFilterMode = False
-    Dim prevLast As Long
-    prevLast = ws.Cells(ws.Rows.Count, "F").End(xlUp).Row
-    If prevLast < 7 Then prevLast = 7
-    ws.Range("F5:AG" & prevLast).Clear
+    prevLast = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    If prevLast < 15 Then prevLast = 15
+    ws.Range("A14:W" & prevLast).Clear
+
     For i = 1 To gU2ExpN
         If U2_ExpPassSummary(gU2Exp(i), opt) Then
             If mgr = "" Or mgr = "전체" Or gU2Exp(i).Manager = mgr Then
@@ -750,10 +817,10 @@ Public Sub U2_BuildExpenseDetail(Optional ByVal ws As Worksheet = Nothing)
         End If
     Next i
 
-    With ws.Range("F5:AG5")
+    With ws.Range("A5:W5")
         .Merge
         .Value2 = "담당자: " & IIf(mgr = "", "전체", mgr) & _
-                  "   |   선택: " & sel & _
+                  "   |   사업: " & sel & _
                   "   |   차수: " & IIf(rn = 0, "본예산", CStr(rn) & "차 추경") & _
                   "   |   합계 " & Format$(total / unit, "#,##0") & " " & unitLabel & _
                   "   |   " & Format$(n, "#,##0") & "건"
@@ -768,12 +835,11 @@ Public Sub U2_BuildExpenseDetail(Optional ByVal ws As Worksheet = Nothing)
 
     headers = Array("세부사업", "세세부사업", "산출1", "산출2", "산출3", "산출4", "세목코드", "원가통계목", _
                     "예산요구액", "재원_특교", "재원_국고", "재원_비법정", "재원_기타", "재원_자체", "재원_합계", _
-                    "업무담당자", "홍보방법", "홍보예산", "신규", "공약", "명시이월", "사업기간", "명시이월액", "명시이월재원", _
-                    "본청주관", "사전절차", "설명사항", "수정여부")
-    U2_Header ws, 6, 6, headers
+                    "업무담당자", "신규", "공약", "홍보", "명시이월", "본청주관", "사전절차", "설명사항")
+    U2_Header ws, 14, 1, headers
 
     If n > 0 Then
-        ReDim arr(1 To n, 1 To 28)
+        ReDim arr(1 To n, 1 To 23)
         r = 0
         For i = 1 To gU2ExpN
             If U2_ExpPassSummary(gU2Exp(i), opt) Then
@@ -796,64 +862,61 @@ Public Sub U2_BuildExpenseDetail(Optional ByVal ws As Worksheet = Nothing)
                         arr(r, 14) = gU2Exp(i).FundSelf / unit
                         arr(r, 15) = gU2Exp(i).FundTotal / unit
                         arr(r, 16) = gU2Exp(i).Manager
-                        arr(r, 17) = gU2Exp(i).PromoMethod
-                        arr(r, 18) = U2_Mark(gU2Exp(i).PromoBudget)
-                        arr(r, 19) = U2_Mark(gU2Exp(i).IsNew)
-                        arr(r, 20) = U2_Mark(gU2Exp(i).IsPromise)
-                        arr(r, 21) = U2_Mark(gU2Exp(i).IsCarryover)
-                        arr(r, 22) = gU2Exp(i).CarryPeriod
-                        arr(r, 23) = gU2Exp(i).CarryAmt / unit
-                        arr(r, 24) = gU2Exp(i).CarryFund
-                        arr(r, 25) = U2_Mark(gU2Exp(i).IsCentral)
-                        arr(r, 26) = gU2Exp(i).PreSummary
-                        arr(r, 27) = gU2Exp(i).Desc
-                        arr(r, 28) = gU2Exp(i).Revised
+                        arr(r, 17) = U2_Mark(gU2Exp(i).IsNew)
+                        arr(r, 18) = U2_Mark(gU2Exp(i).IsPromise)
+                        arr(r, 19) = U2_Mark(gU2Exp(i).PromoBudget)
+                        arr(r, 20) = U2_Mark(gU2Exp(i).IsCarryover)
+                        arr(r, 21) = U2_Mark(gU2Exp(i).IsCentral)
+                        arr(r, 22) = gU2Exp(i).PreSummary
+                        arr(r, 23) = gU2Exp(i).Desc
                     End If
                 End If
             End If
         Next i
-        ws.Range("F7").Resize(n, 28).Value2 = arr
+        ws.Range("A15").Resize(n, 23).Value2 = arr
     Else
-        ws.Range("F7").Value2 = "선택한 조건에 맞는 세출 자료가 없습니다."
+        ws.Range("A15").Value2 = "선택한 조건에 맞는 세출 자료가 없습니다."
     End If
 
-    With ws.Range("F6:AG" & (6 + Application.Max(1, n)))
+    With ws.Range("A14:W" & (14 + Application.Max(1, n)))
         .Borders.LineStyle = xlContinuous
         .Borders.Color = C_LINE
         .Font.Name = "맑은 고딕"
         .Font.Size = 9
         .VerticalAlignment = xlCenter
     End With
-    ws.Range("F6:AG6").Interior.Color = C_NAVY
-    ws.Range("F6:AG6").Font.Color = RGB(255, 255, 255)
-    ws.Range("F6:AG6").Font.Bold = True
-    ws.Range("F6:AG6").WrapText = True
-    ws.Rows(6).RowHeight = 32
+    ws.Range("A14:W14").Interior.Color = C_NAVY
+    ws.Range("A14:W14").Font.Color = RGB(255, 255, 255)
+    ws.Range("A14:W14").Font.Bold = True
+    ws.Range("A14:W14").WrapText = True
+    ws.Rows(14).RowHeight = 32
 
     If n > 0 Then
-        ws.Range("N7:T" & (6 + n)).NumberFormat = "#,##0"
-        ws.Range("AB7:AB" & (6 + n)).NumberFormat = "#,##0"
-        ws.Range("W7:W" & (6 + n)).Interior.Color = RGB(255, 248, 225)
-        ws.Range("X7:X" & (6 + n)).Interior.Color = RGB(232, 245, 233)
-        ws.Range("Y7:Y" & (6 + n)).Interior.Color = RGB(255, 248, 225)
-        ws.Range("Z7:Z" & (6 + n)).Interior.Color = RGB(227, 242, 253)
-        ws.Range("AD7:AD" & (6 + n)).Interior.Color = RGB(243, 229, 245)
-        ws.Range("F6:AG" & (6 + n)).AutoFilter
+        ws.Range("I15:O" & (14 + n)).NumberFormat = "#,##0"
+        ws.Range("Q15:Q" & (14 + n)).Interior.Color = RGB(232, 245, 233)
+        ws.Range("R15:R" & (14 + n)).Interior.Color = RGB(255, 248, 225)
+        ws.Range("S15:S" & (14 + n)).Interior.Color = RGB(255, 248, 225)
+        ws.Range("T15:T" & (14 + n)).Interior.Color = RGB(227, 242, 253)
+        ws.Range("U15:U" & (14 + n)).Interior.Color = RGB(243, 229, 245)
+        ws.Range("A14:W" & (14 + n)).AutoFilter
     End If
 
     ws.Activate
+    On Error Resume Next
     ActiveWindow.FreezePanes = False
-    ws.Range("F21").Select
+    ws.Range("A15").Select
     ActiveWindow.FreezePanes = True
+    ActiveWindow.Zoom = 75
+    On Error GoTo 0
 End Sub
 
 Private Function U2_FindListKey(ByVal ws As Worksheet, ByVal sel As String) As String
     Dim r As Long
     Dim lastR As Long
-    lastR = ws.Cells(ws.Rows.Count, "BA").End(xlUp).Row
+    lastR = ws.Cells(ws.Rows.Count, "BC").End(xlUp).Row
     For r = 2 To lastR
-        If U2_CellText(ws.Cells(r, "BA").Value2) = sel Then
-            U2_FindListKey = U2_CellText(ws.Cells(r, "BC").Value2)
+        If U2_CellText(ws.Cells(r, "BC").Value2) = sel Then
+            U2_FindListKey = U2_CellText(ws.Cells(r, "BD").Value2)
             Exit Function
         End If
     Next r
@@ -861,28 +924,24 @@ Private Function U2_FindListKey(ByVal ws As Worksheet, ByVal sel As String) As S
 End Function
 
 Private Function U2_SelectedManager(ByVal ws As Worksheet) As String
-    Dim v As Variant
     Dim idx As Long
-    v = ws.Range("AZ1").Value2
-    If IsNumeric(v) Then
-        idx = CLng(v)
-        If idx >= 1 Then U2_SelectedManager = U2_CellText(ws.Cells(1 + idx, "AY").Value2)
-    Else
-        U2_SelectedManager = U2_CellText(v)
+    idx = CLng(U2_Num(ws.Range("BA1").Value2))
+    If idx >= 1 Then
+        U2_SelectedManager = U2_CellText(ws.Cells(1 + idx, "AY").Value2)
+        If U2_SelectedManager <> "" Then Exit Function
     End If
-    If U2_SelectedManager = "" Then U2_SelectedManager = "전체"
+    idx = CLng(U2_Num(ws.Range("BB1").Value2))
+    If idx >= 1 Then
+        U2_SelectedManager = U2_CellText(ws.Cells(1 + idx, "AZ").Value2)
+        If U2_SelectedManager <> "" Then Exit Function
+    End If
+    U2_SelectedManager = "전체"
 End Function
 
 Private Function U2_SelectedItem(ByVal ws As Worksheet) As String
-    Dim v As Variant
     Dim idx As Long
-    v = ws.Range("BB1").Value2
-    If IsNumeric(v) Then
-        idx = CLng(v)
-        If idx >= 1 Then U2_SelectedItem = U2_CellText(ws.Cells(1 + idx, "BA").Value2)
-    Else
-        U2_SelectedItem = U2_CellText(v)
-    End If
+    idx = CLng(U2_Num(ws.Range("BE1").Value2))
+    If idx >= 1 Then U2_SelectedItem = U2_CellText(ws.Cells(1 + idx, "BC").Value2)
     If U2_SelectedItem = "" Then U2_SelectedItem = "전체"
 End Function
 
@@ -1704,5 +1763,10 @@ Public Sub U2_ShowSheet(ByVal wb As Workbook, ByVal nm As String)
     If Not ws Is Nothing Then
         ws.Activate
         ws.Range("A1").Select
+        If nm = U2_SH_EXPENSE Then
+            On Error Resume Next
+            ActiveWindow.Zoom = 75
+            On Error GoTo 0
+        End If
     End If
 End Sub
