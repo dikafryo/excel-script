@@ -33,23 +33,20 @@ Public Sub U2_BuildAll(ByVal wb As Workbook, Optional ByVal resetOptions As Bool
     Application.ScreenUpdating = False
     Application.DisplayAlerts = False
 
-    gU2Trace = "안내 화면"
-    U2_BuildGuide wb
     gU2Trace = "옵션 화면"
     U2_BuildOptions wb, resetOptions
     gU2Trace = "세입 화면"
     U2_BuildIncome wb
     gU2Trace = "세출 화면"
     U2_BuildExpense wb
-    gU2Trace = "세출 요약"
-    U2_BuildExpenseSummary wb
     gU2Trace = "요약 화면"
     U2_BuildSummary wb
+    U2_OnlyFourSheets wb
 
     Application.Calculation = oldCalc
     Application.ScreenUpdating = oldScreen
     Application.DisplayAlerts = oldAlerts
-    U2_ShowSheet wb, U2_SH_SUMMARY
+    U2_ShowSheet wb, U2_SH_GUIDE
     Exit Sub
 
 EH:
@@ -66,7 +63,6 @@ End Sub
 
 Public Sub U2_BuildGuide(ByVal wb As Workbook)
     Dim ws As Worksheet
-    Dim lastRow As Long
 
     Set ws = U2_GetSheet(wb, U2_SH_GUIDE, False)
     If ws Is Nothing Then
@@ -74,37 +70,14 @@ Public Sub U2_BuildGuide(ByVal wb As Workbook)
         ws.Name = U2_SH_GUIDE
     End If
 
+    ws.Cells.UnMerge
     ws.Cells.Clear
     ws.Cells.Interior.Color = RGB(255, 255, 255)
     U2_DeleteShapes ws
+    U2_BuildNav ws
+    U2_Title ws, "UBIS 예산 가져오기", "UBIS에서 내려받은 세입·세출 예산요구서를 한 번에 분석합니다.", 10
 
-    With ws.Range("A1:J2")
-        .Merge
-        .Value2 = "UBIS 예산 가져오기"
-        .Font.Name = "맑은 고딕"
-        .Font.Size = 22
-        .Font.Bold = True
-        .Font.Color = RGB(255, 255, 255)
-        .Interior.Color = C_NAVY
-        .HorizontalAlignment = xlLeft
-        .VerticalAlignment = xlCenter
-        .IndentLevel = 2
-    End With
-    ws.Rows(1).RowHeight = 34
-    ws.Rows(2).RowHeight = 10
-
-    With ws.Range("A3:J3")
-        .Merge
-        .Value2 = "UBIS에서 내려받은 세입·세출 예산요구서를 한 번에 분석해 한눈에 보여 줍니다."
-        .Font.Name = "맑은 고딕"
-        .Font.Size = 12
-        .Font.Color = C_TEXT
-        .VerticalAlignment = xlCenter
-        .IndentLevel = 2
-    End With
-    ws.Rows(3).RowHeight = 26
-
-    With ws.Range("A5:E12")
+    With ws.Range("A6:E13")
         .Merge
         .Value2 = "[세입예산]" & vbLf & vbLf & _
                   "1. UBIS > 세입 > 세입요구 > 본예산 > 조회 > 세입예산요구서 클릭" & vbLf & vbLf & _
@@ -123,7 +96,7 @@ Public Sub U2_BuildGuide(ByVal wb As Workbook)
         .Borders.Color = RGB(200, 220, 245)
     End With
 
-    With ws.Range("F5:J12")
+    With ws.Range("F6:J13")
         .Merge
         .Value2 = "[세출예산]" & vbLf & vbLf & _
                   "1. UBIS > 세출 > 세출요구 > 본예산 > 조회 > 세출예산요구서 클릭" & vbLf & vbLf & _
@@ -142,7 +115,7 @@ Public Sub U2_BuildGuide(ByVal wb As Workbook)
         .Borders.Color = RGB(200, 235, 200)
     End With
 
-    With ws.Range("A13:J13")
+    With ws.Range("A14:J14")
         .Merge
         .Value2 = "내려받은 파일을 모두 선택하세요. (본예산 + 추경 1차·2차·3차 …) 세입·세출 파일을 한 번에 선택해도 됩니다."
         .Font.Name = "맑은 고딕"
@@ -157,20 +130,20 @@ Public Sub U2_BuildGuide(ByVal wb As Workbook)
         .Borders.LineStyle = xlContinuous
         .Borders.Color = RGB(245, 220, 150)
     End With
-    ws.Rows(13).RowHeight = 26
+    ws.Rows(14).RowHeight = 26
 
-    ws.Rows(5).RowHeight = 24
-    ws.Rows(6).RowHeight = 20
+    ws.Rows(6).RowHeight = 24
     ws.Rows(7).RowHeight = 20
     ws.Rows(8).RowHeight = 20
     ws.Rows(9).RowHeight = 20
     ws.Rows(10).RowHeight = 20
     ws.Rows(11).RowHeight = 20
     ws.Rows(12).RowHeight = 20
+    ws.Rows(13).RowHeight = 20
 
-    U2_AddButton ws, "u2_pick", "1. 파일 선택하고 분석하기", "pick", 12, 290, 40, True
-    U2_AddButton ws, "u2_prev", "2. 결과 보기", "summary", 410, 290, 40, False
-    U2_AddButton ws, "u2_optguide", "옵션 설정", "options", 550, 290, 40, False
+    U2_AddButton ws, "u2_pick", "파일 선택하고 분석하기", "pick", 20, 300, 42, True
+    U2_AddButton ws, "u2_optguide", "옵션 설정", "options", 260, 300, 42, False
+    U2_AddButton ws, "u2_helpguide", "사용 방법", "help", 380, 300, 42, False
 
     With ws.Range("A18:J18")
         .Merge
@@ -186,10 +159,9 @@ Public Sub U2_BuildGuide(ByVal wb As Workbook)
     End With
 
     ws.Columns("A:J").ColumnWidth = 16
-    ws.Rows(4).RowHeight = 12
-    ws.Rows(16).RowHeight = 12
-    ws.Rows(17).RowHeight = 12
-    ws.Rows(19).RowHeight = 12
+    ws.Rows(5).RowHeight = 8
+    ws.Rows(15).RowHeight = 8
+    ws.Rows(16).RowHeight = 8
     ws.Activate
     ws.Range("A1").Select
 End Sub
@@ -220,35 +192,24 @@ Public Sub U2_BuildOptions(ByVal wb As Workbook, ByVal reset As Boolean)
         Set old = U2_ReadOptions()
     End If
 
-    With ws.Range("A1:H2")
-        .Merge
-        .Value2 = "옵션 설정"
-        .Font.Name = "맑은 고딕"
-        .Font.Size = 18
-        .Font.Bold = True
-        .Font.Color = RGB(255, 255, 255)
-        .Interior.Color = C_NAVY
-        .VerticalAlignment = xlCenter
-        .IndentLevel = 1
-    End With
-    ws.Rows(1).RowHeight = 30
-    ws.Rows(2).RowHeight = 6
+    U2_BuildNav ws
+    U2_Title ws, "옵션 설정", "필터를 선택한 뒤 [필터 적용]을 누르세요.", 8
 
-    U2_OptionLabel ws, "A4", "공통"
-    U2_OptionLabel ws, "A5", "차수"
-    U2_OptionLabel ws, "A6", "금액 단위"
-    U2_OptionLabel ws, "A8", "세입"
-    U2_OptionLabel ws, "A9", "사업항목"
-    U2_OptionLabel ws, "A11", "세출"
-    U2_OptionLabel ws, "A12", "부서"
-    U2_OptionLabel ws, "A13", "세부사업"
-    U2_OptionLabel ws, "A14", "세목"
-    U2_OptionLabel ws, "A15", "신규여부"
-    U2_OptionLabel ws, "A16", "공약사업"
-    U2_OptionLabel ws, "A17", "홍보예산"
-    U2_OptionLabel ws, "A18", "명시이월"
-    U2_OptionLabel ws, "A19", "본청주관"
-    U2_OptionLabel ws, "A20", "사전절차"
+    U2_OptionLabel ws, "A6", "공통"
+    U2_OptionLabel ws, "A7", "차수"
+    U2_OptionLabel ws, "A8", "금액 단위"
+    U2_OptionLabel ws, "A10", "세입"
+    U2_OptionLabel ws, "A11", "사업항목"
+    U2_OptionLabel ws, "A13", "세출"
+    U2_OptionLabel ws, "A14", "부서"
+    U2_OptionLabel ws, "A15", "세부사업"
+    U2_OptionLabel ws, "A16", "세목"
+    U2_OptionLabel ws, "A17", "신규여부"
+    U2_OptionLabel ws, "A18", "공약사업"
+    U2_OptionLabel ws, "A19", "홍보예산"
+    U2_OptionLabel ws, "A20", "명시이월"
+    U2_OptionLabel ws, "A21", "본청주관"
+    U2_OptionLabel ws, "A22", "사전절차"
 
     ws.Range("M2:X400").ClearContents
     U2_WriteList ws, 1, U2_RoundList()
@@ -265,25 +226,23 @@ Public Sub U2_BuildOptions(ByVal wb As Workbook, ByVal reset As Boolean)
     U2_WriteList ws, 12, Array("전체", "중기재정계획", "재정투자심사", "지방보조금", "정책연구용역심의", _
                               "공유재산관리계획", "정수물품취득", "국외연수심의위원회", "사무위탁·대행")
 
-    U2_SetValidation ws, "B5", "=$M$2:$M$40"
-    U2_SetValidation ws, "B6", "=$N$2:$N$10"
-    U2_SetValidation ws, "B9", "=$O$2:$O$300"
-    U2_SetValidation ws, "B12", "=$P$2:$P$300"
-    U2_SetValidation ws, "B13", "=$Q$2:$Q$300"
-    U2_SetValidation ws, "B14", "=$R$2:$R$300"
-    U2_SetValidation ws, "B15", "=$S$2:$S$10"
-    U2_SetValidation ws, "B16", "=$T$2:$T$10"
-    U2_SetValidation ws, "B17", "=$U$2:$U$10"
-    U2_SetValidation ws, "B18", "=$V$2:$V$10"
-    U2_SetValidation ws, "B19", "=$W$2:$W$10"
-    U2_SetValidation ws, "B20", "=$X$2:$X$20"
+    U2_SetValidation ws, "B7", "=$M$2:$M$40"
+    U2_SetValidation ws, "B8", "=$N$2:$N$10"
+    U2_SetValidation ws, "B11", "=$O$2:$O$300"
+    U2_SetValidation ws, "B14", "=$P$2:$P$300"
+    U2_SetValidation ws, "B15", "=$Q$2:$Q$300"
+    U2_SetValidation ws, "B16", "=$R$2:$R$300"
+    U2_SetValidation ws, "B17", "=$S$2:$S$10"
+    U2_SetValidation ws, "B18", "=$T$2:$T$10"
+    U2_SetValidation ws, "B19", "=$U$2:$U$10"
+    U2_SetValidation ws, "B20", "=$V$2:$V$10"
+    U2_SetValidation ws, "B21", "=$W$2:$W$10"
+    U2_SetValidation ws, "B22", "=$X$2:$X$20"
 
     If reset Or old Is Nothing Then
-        ws.Range("B5").Value2 = "전체"
-        ws.Range("B6").Value2 = "천원"
-        ws.Range("B9").Value2 = "전체"
-        ws.Range("B12").Value2 = "전체"
-        ws.Range("B13").Value2 = "전체"
+        ws.Range("B7").Value2 = "전체"
+        ws.Range("B8").Value2 = "천원"
+        ws.Range("B11").Value2 = "전체"
         ws.Range("B14").Value2 = "전체"
         ws.Range("B15").Value2 = "전체"
         ws.Range("B16").Value2 = "전체"
@@ -291,22 +250,24 @@ Public Sub U2_BuildOptions(ByVal wb As Workbook, ByVal reset As Boolean)
         ws.Range("B18").Value2 = "전체"
         ws.Range("B19").Value2 = "전체"
         ws.Range("B20").Value2 = "전체"
+        ws.Range("B21").Value2 = "전체"
+        ws.Range("B22").Value2 = "전체"
     Else
-        U2_RestoreOption ws, "B5", old("Round")
-        U2_RestoreOption ws, "B6", old("Unit")
-        U2_RestoreOption ws, "B9", old("IncItem")
-        U2_RestoreOption ws, "B12", old("Dept")
-        U2_RestoreOption ws, "B13", old("SubBiz")
-        U2_RestoreOption ws, "B14", old("ItemCode")
-        U2_RestoreOption ws, "B15", old("New")
-        U2_RestoreOption ws, "B16", old("Promise")
-        U2_RestoreOption ws, "B17", old("Promo")
-        U2_RestoreOption ws, "B18", old("Carry")
-        U2_RestoreOption ws, "B19", old("Central")
-        U2_RestoreOption ws, "B20", old("Pre")
+        U2_RestoreOption ws, "B7", old("Round")
+        U2_RestoreOption ws, "B8", old("Unit")
+        U2_RestoreOption ws, "B11", old("IncItem")
+        U2_RestoreOption ws, "B14", old("Dept")
+        U2_RestoreOption ws, "B15", old("SubBiz")
+        U2_RestoreOption ws, "B16", old("ItemCode")
+        U2_RestoreOption ws, "B17", old("New")
+        U2_RestoreOption ws, "B18", old("Promise")
+        U2_RestoreOption ws, "B19", old("Promo")
+        U2_RestoreOption ws, "B20", old("Carry")
+        U2_RestoreOption ws, "B21", old("Central")
+        U2_RestoreOption ws, "B22", old("Pre")
     End If
 
-    With ws.Range("B5:B20")
+    With ws.Range("B7:B22")
         .Font.Name = "맑은 고딕"
         .Font.Size = 11
         .Interior.Color = RGB(250, 250, 252)
@@ -316,24 +277,24 @@ Public Sub U2_BuildOptions(ByVal wb As Workbook, ByVal reset As Boolean)
         .IndentLevel = 1
     End With
 
-    U2_AddButton ws, "u2_apply", "필터 적용", "apply", 30, 456, 34, True
-    U2_AddButton ws, "u2_reset", "초기화", "reset", 150, 456, 34, False
-    U2_AddButton ws, "u2_sum", "요약 보기", "summary", 270, 456, 34, False
-    U2_AddButton ws, "u2_inc", "세입 보기", "income", 390, 456, 34, False
-    U2_AddButton ws, "u2_exp", "세출 보기", "expense", 510, 456, 34, False
+    U2_AddButton ws, "u2_apply", "필터 적용", "apply", 30, 520, 34, True
+    U2_AddButton ws, "u2_reset", "초기화", "reset", 150, 520, 34, False
+    U2_AddButton ws, "u2_sum", "요약 보기", "summary", 270, 520, 34, False
+    U2_AddButton ws, "u2_inc", "세입 보기", "income", 390, 520, 34, False
+    U2_AddButton ws, "u2_exp", "세출 보기", "expense", 510, 520, 34, False
 
     ws.Columns("A").ColumnWidth = 16
     ws.Columns("B").ColumnWidth = 34
     ws.Columns("C:L").ColumnWidth = 3
     ws.Columns("M:X").Hidden = True
 
-    ws.Range("A22:H22").Merge
-    ws.Range("A22").Value2 = "필터를 바꾼 뒤 [필터 적용]을 누르면 세입·세출·요약 화면이 다시 만들어집니다."
-    ws.Range("A22").Font.Name = "맑은 고딕"
-    ws.Range("A22").Font.Size = 10
-    ws.Range("A22").Font.Color = C_SUB
-    ws.Range("A22").VerticalAlignment = xlCenter
-    ws.Range("A22").IndentLevel = 1
+    ws.Range("A24:H24").Merge
+    ws.Range("A24").Value2 = "필터를 바꾼 뒤 [필터 적용]을 누르면 세입·세출·요약 화면이 다시 만들어집니다."
+    ws.Range("A24").Font.Name = "맑은 고딕"
+    ws.Range("A24").Font.Size = 10
+    ws.Range("A24").Font.Color = C_SUB
+    ws.Range("A24").VerticalAlignment = xlCenter
+    ws.Range("A24").IndentLevel = 1
 End Sub
 
 Private Sub U2_OptionLabel(ByVal ws As Worksheet, ByVal addr As String, ByVal text As String)
@@ -401,6 +362,7 @@ Private Sub U2_BuildIncome(ByVal wb As Workbook)
     Dim tmpRow() As Variant
 
     Set ws = U2_ResetSheet(wb, U2_SH_INCOME)
+    U2_BuildNav ws
     Set opt = U2_ReadOptions()
     unit = U2_UnitValue(opt("Unit"))
     maxR = U2_MaxRound()
@@ -416,7 +378,7 @@ Private Sub U2_BuildIncome(ByVal wb As Workbook)
     Next i
 
     If items.Count = 0 Then
-        ws.Range("A4").Value2 = "선택한 조건에 맞는 세입 자료가 없습니다."
+        ws.Range("A6").Value2 = "선택한 조건에 맞는 세입 자료가 없습니다."
         Exit Sub
     End If
 
@@ -427,7 +389,7 @@ Private Sub U2_BuildIncome(ByVal wb As Workbook)
         keys(n) = CStr(key)
     Next key
 
-    U2_Header ws, 4, 1, U2_IncomeSummaryHeaders(maxR)
+    U2_Header ws, 6, 1, U2_IncomeSummaryHeaders(maxR)
 
     lastCol = 3 + maxR + 2
     ReDim outArr(1 To n, 1 To lastCol)
@@ -452,19 +414,19 @@ Private Sub U2_BuildIncome(ByVal wb As Workbook)
         outArr(i, lastCol) = (vals(maxR) - vals(0)) / unit
     Next i
 
-    ws.Range("A5").Resize(n, lastCol).Value2 = outArr
-    ws.Range(ws.Cells(5, 1), ws.Cells(4 + n, lastCol)).Sort _
-        Key1:=ws.Cells(5, lastCol - 1), Order1:=xlDescending, Header:=xlNo
+    ws.Range("A7").Resize(n, lastCol).Value2 = outArr
+    ws.Range(ws.Cells(7, 1), ws.Cells(6 + n, lastCol)).Sort _
+        Key1:=ws.Cells(7, lastCol - 1), Order1:=xlDescending, Header:=xlNo
 
-    r = 5 + n
-    With ws.Range(ws.Cells(5, 1), ws.Cells(r - 1, 3 + maxR + 2))
+    r = 7 + n
+    With ws.Range(ws.Cells(7, 1), ws.Cells(r - 1, 3 + maxR + 2))
         .Borders.LineStyle = xlContinuous
         .Borders.Color = C_LINE
         .Font.Name = "맑은 고딕"
         .Font.Size = 10
     End With
-    ws.Range(ws.Cells(5, 3), ws.Cells(r - 1, 3 + maxR + 2)).NumberFormat = "#,##0"
-    ws.Range(ws.Cells(5, 3 + maxR + 2), ws.Cells(r - 1, 3 + maxR + 2)).Font.Color = C_BLUE
+    ws.Range(ws.Cells(7, 3), ws.Cells(r - 1, 3 + maxR + 2)).NumberFormat = "#,##0"
+    ws.Range(ws.Cells(7, 3 + maxR + 2), ws.Cells(r - 1, 3 + maxR + 2)).Font.Color = C_BLUE
 
     detailRow = r + 2
     ws.Cells(detailRow - 1, 1).Value2 = "세입 상세"
@@ -507,7 +469,7 @@ Private Sub U2_BuildIncome(ByVal wb As Workbook)
     ws.Columns("A").ColumnWidth = 30
     ws.Columns("B").ColumnWidth = 18
     ws.Columns("C:Z").ColumnWidth = 13
-    ws.Rows(4).RowHeight = 30
+    ws.Rows(6).RowHeight = 30
     ws.Rows(detailRow).RowHeight = 28
 End Sub
 
@@ -582,111 +544,43 @@ Private Sub U2_BuildExpense(ByVal wb As Workbook)
     Dim ws As Worksheet
     Dim opt As Object
     Dim unit As Double
-    Dim i As Long
-    Dim r As Long
-    Dim n As Long
-    Dim total As Double
-    Dim arr As Variant
-    Dim headers As Variant
+    Dim mgrLast As Long
 
     Set ws = U2_ResetSheet(wb, U2_SH_EXPENSE)
     Set opt = U2_ReadOptions()
     unit = U2_UnitValue(opt("Unit"))
 
-    U2_Title ws, "세출 예산", "부서·세부사업·세목·산출기초·재원·담당자·사업유형을 한 표에서 봅니다. (금액 단위: " & CStr(opt("Unit")) & ")", 32
+    U2_BuildNav ws
+    U2_Title ws, "세출예산", "담당자를 고르고 세부사업·세세부사업을 선택하면 해당 예산만 표시됩니다. (금액 단위: " & CStr(opt("Unit")) & ")", 33
 
-    n = 0
-    total = 0
-    For i = 1 To gU2ExpN
-        If U2_ExpPass(gU2Exp(i), opt) Then
-            n = n + 1
-            total = total + gU2Exp(i).ReqAmt
-        End If
-    Next i
-
-    ws.Range("A4").Value2 = IIf(CStr(opt("Round")) = "전체", "표시된 전체 차수 합계 ", "선택 차수 합계 ") & _
-                            Format$(total / unit, "#,##0") & " " & CStr(opt("Unit")) & _
-                            "   |   " & Format$(n, "#,##0") & "건"
-    ws.Range("A4").Font.Name = "맑은 고딕"
-    ws.Range("A4").Font.Size = 11
-    ws.Range("A4").Font.Bold = True
-    ws.Range("A4").Font.Color = C_NAVY
-
-    headers = Array("차수", "부서명", "정책사업", "단위사업", "세부사업", "세세부사업", _
-                    "산출1", "산출2", "산출3", "산출4", "세목코드", "원가통계목", _
-                    "예산요구액", "재원_특교", "재원_국고", "재원_비법정", "재원_기타", "재원_자체", "재원_합계", _
-                    "업무담당자", "홍보방법", "홍보예산", "신규여부", "공약사업", "명시이월", _
-                    "사업기간", "명시이월액", "명시이월재원", "본청주관", "사전절차", "설명사항", "수정여부")
-    U2_Header ws, 6, 1, headers
-
-    If n > 0 Then
-        ReDim arr(1 To n, 1 To 32)
-        r = 0
-        For i = 1 To gU2ExpN
-            If U2_ExpPass(gU2Exp(i), opt) Then
-                r = r + 1
-                arr(r, 1) = gU2Exp(i).RoundName
-                arr(r, 2) = gU2Exp(i).Dept
-                arr(r, 3) = gU2Exp(i).Policy
-                arr(r, 4) = gU2Exp(i).UnitBiz
-                arr(r, 5) = gU2Exp(i).SubBiz
-                arr(r, 6) = gU2Exp(i).SubSubBiz
-                arr(r, 7) = U2_LabelText(gU2Exp(i).Calc1)
-                arr(r, 8) = U2_LabelText(gU2Exp(i).Calc2)
-                arr(r, 9) = U2_LabelText(gU2Exp(i).Calc3)
-                arr(r, 10) = U2_LabelText(gU2Exp(i).Calc4)
-                arr(r, 11) = gU2Exp(i).ItemCode
-                arr(r, 12) = gU2Exp(i).CostStat
-                arr(r, 13) = gU2Exp(i).ReqAmt / unit
-                arr(r, 14) = gU2Exp(i).FundSpecial / unit
-                arr(r, 15) = gU2Exp(i).FundNational / unit
-                arr(r, 16) = gU2Exp(i).FundNonStatutory / unit
-                arr(r, 17) = gU2Exp(i).FundOther / unit
-                arr(r, 18) = gU2Exp(i).FundSelf / unit
-                arr(r, 19) = gU2Exp(i).FundTotal / unit
-                arr(r, 20) = gU2Exp(i).Manager
-                arr(r, 21) = gU2Exp(i).PromoMethod
-                arr(r, 22) = U2_Mark(gU2Exp(i).PromoBudget)
-                arr(r, 23) = U2_Mark(gU2Exp(i).IsNew)
-                arr(r, 24) = U2_Mark(gU2Exp(i).IsPromise)
-                arr(r, 25) = U2_Mark(gU2Exp(i).IsCarryover)
-                arr(r, 26) = gU2Exp(i).CarryPeriod
-                arr(r, 27) = gU2Exp(i).CarryAmt / unit
-                arr(r, 28) = gU2Exp(i).CarryFund
-                arr(r, 29) = U2_Mark(gU2Exp(i).IsCentral)
-                arr(r, 30) = gU2Exp(i).PreSummary
-                arr(r, 31) = gU2Exp(i).Desc
-                arr(r, 32) = gU2Exp(i).Revised
-            End If
-        Next i
-        ws.Range("A7").Resize(n, 32).Value2 = arr
-    End If
-
-    With ws.Range("A6:AF" & (6 + n))
-        .Borders.LineStyle = xlContinuous
-        .Borders.Color = C_LINE
+    With ws.Range("A5")
+        .Value2 = "담당자"
         .Font.Name = "맑은 고딕"
-        .Font.Size = 9
+        .Font.Size = 10
+        .Font.Bold = True
+        .Font.Color = C_TEXT
         .VerticalAlignment = xlCenter
     End With
-    ws.Range("A6:AF6").Interior.Color = C_NAVY
-    ws.Range("A6:AF6").Font.Color = RGB(255, 255, 255)
-    ws.Range("A6:AF6").Font.Bold = True
-    ws.Range("A6:AF6").WrapText = True
-    ws.Rows(6).RowHeight = 32
+    With ws.Range("A6")
+        .Value2 = "세부사업 / 세세부사업"
+        .Font.Name = "맑은 고딕"
+        .Font.Size = 10
+        .Font.Bold = True
+        .Font.Color = C_TEXT
+        .VerticalAlignment = xlCenter
+    End With
 
-    If n > 0 Then
-        ws.Range("M7:S" & (6 + n)).NumberFormat = "#,##0"
-        ws.Range("AA7:AA" & (6 + n)).NumberFormat = "#,##0"
-        U2_ColorFlagColumns ws, 7, n
-        ws.Range("A6:AF" & (6 + n)).AutoFilter
-    End If
+    ws.Range("AY1:BC500").Clear
+    mgrLast = U2_FillManagerList(ws)
+    U2_CreateExpenseControls ws, mgrLast
+    U2_RebuildExpenseList ws
+    U2_BuildExpenseDetail ws
 
-    ws.Columns("A").ColumnWidth = 10
-    ws.Columns("B").ColumnWidth = 26
-    ws.Columns("C:E").ColumnWidth = 18
+    ws.Columns("A").ColumnWidth = 3
+    ws.Columns("B:E").ColumnWidth = 18
     ws.Columns("F").ColumnWidth = 24
-    ws.Columns("G:J").ColumnWidth = 26
+    ws.Columns("G").ColumnWidth = 24
+    ws.Columns("H:J").ColumnWidth = 24
     ws.Columns("K").ColumnWidth = 11
     ws.Columns("L").ColumnWidth = 14
     ws.Columns("M:S").ColumnWidth = 13
@@ -694,36 +588,315 @@ Private Sub U2_BuildExpense(ByVal wb As Workbook)
     ws.Columns("U").ColumnWidth = 16
     ws.Columns("V:Z").ColumnWidth = 10
     ws.Columns("AA").ColumnWidth = 14
-    ws.Columns("AB:AF").ColumnWidth = 18
+    ws.Columns("AB:AG").ColumnWidth = 18
+    ws.Columns("AY:BC").Hidden = True
+End Sub
+
+Private Function U2_FillManagerList(ByVal ws As Worksheet) As Long
+    Dim d As Object
+    Dim i As Long
+    Dim r As Long
+    Dim k As Variant
+    Dim opt As Object
+
+    Set opt = U2_ReadOptions()
+    Set d = CreateObject("Scripting.Dictionary")
+    d("전체") = 1
+    For i = 1 To gU2ExpN
+        If U2_ExpPassSummary(gU2Exp(i), opt) Then
+            If gU2Exp(i).Manager <> "" Then d(gU2Exp(i).Manager) = 1
+        End If
+    Next i
+
+    r = 2
+    For Each k In d.Keys
+        ws.Cells(r, "AY").Value2 = CStr(k)
+        r = r + 1
+    Next k
+    If r = 2 Then
+        ws.Cells(2, "AY").Value2 = "전체"
+        r = 3
+    End If
+    U2_FillManagerList = r - 1
+End Function
+
+Private Sub U2_CreateExpenseControls(ByVal ws As Worksheet, ByVal mgrLast As Long)
+    Dim shp As Shape
+    Dim old As Shape
+
+    On Error Resume Next
+    ws.Shapes("u2cboManager").Delete
+    ws.Shapes("u2lstSub").Delete
+    On Error GoTo 0
+
+    Set shp = ws.Shapes.AddFormControl(xlDropDown, 70, 94, 220, 22)
+    shp.Name = "u2cboManager"
+    shp.Placement = xlMove
+    shp.ControlFormat.ListFillRange = "$AY$2:$AY$" & mgrLast
+    shp.ControlFormat.LinkedCell = "$AZ$1"
+    shp.ControlFormat.DropDownLines = 12
+    shp.ControlFormat.ListIndex = 1
+    shp.OnAction = "U2_ManagerChange"
+    shp.ZOrder msoBringToFront
+
+    Set shp = ws.Shapes.AddFormControl(xlListBox, 10, 135, 300, 200)
+    shp.Name = "u2lstSub"
+    shp.Placement = xlMove
+    shp.ControlFormat.LinkedCell = "$BB$1"
+    shp.OnAction = "U2_SubListClick"
+    shp.ZOrder msoBringToFront
+End Sub
+
+Public Sub U2_RebuildExpenseList(Optional ByVal ws As Worksheet = Nothing)
+    Dim d As Object
+    Dim i As Long
+    Dim r As Long
+    Dim k As Variant
+    Dim mgr As String
+    Dim opt As Object
+
+    If ws Is Nothing Then Set ws = U2_GetSheet(U2_CurrentBook(), U2_SH_EXPENSE)
+    If ws Is Nothing Then Exit Sub
+    U2_EnsureDataLoaded
+    Set opt = U2_ReadOptions()
+    mgr = U2_SelectedManager(ws)
+
+    Set d = CreateObject("Scripting.Dictionary")
+    d("ALL") = "전체"
+    For i = 1 To gU2ExpN
+        If U2_ExpPassSummary(gU2Exp(i), opt) Then
+            If mgr = "" Or mgr = "전체" Or gU2Exp(i).Manager = mgr Then
+                If gU2Exp(i).SubBiz <> "" Then d("S|" & gU2Exp(i).SubBiz) = "▸ " & gU2Exp(i).SubBiz
+                If gU2Exp(i).SubSubBiz <> "" Then d("SS|" & gU2Exp(i).SubSubBiz) = "    - " & gU2Exp(i).SubSubBiz
+            End If
+        End If
+    Next i
+
+    ws.Range("BA2:BC500").ClearContents
+    r = 2
+    For Each k In d.Keys
+        ws.Cells(r, "BA").Value2 = CStr(d(k))
+        ws.Cells(r, "BC").Value2 = CStr(k)
+        r = r + 1
+    Next k
+    If r = 2 Then
+        ws.Cells(2, "BA").Value2 = "전체"
+        ws.Cells(2, "BC").Value2 = "ALL"
+        r = 3
+    End If
+
+    On Error Resume Next
+    ws.Shapes("u2lstSub").OnAction = ""
+    ws.Shapes("u2lstSub").ControlFormat.ListFillRange = "$BA$2:$BA$" & (r - 1)
+    ws.Shapes("u2lstSub").ControlFormat.ListIndex = 1
+    ws.Shapes("u2lstSub").OnAction = "U2_SubListClick"
+    On Error GoTo 0
+End Sub
+
+Public Sub U2_ManagerChange()
+    Dim ws As Worksheet
+    U2_EnsureDataLoaded
+    Set ws = U2_GetSheet(U2_CurrentBook(), U2_SH_EXPENSE)
+    If ws Is Nothing Then Exit Sub
+    U2_RebuildExpenseList ws
+    U2_BuildExpenseDetail ws
+End Sub
+
+Public Sub U2_SubListClick()
+    U2_EnsureDataLoaded
+    U2_BuildExpenseDetail
+End Sub
+
+Public Sub U2_BuildExpenseDetail(Optional ByVal ws As Worksheet = Nothing)
+    Dim opt As Object
+    Dim unit As Double
+    Dim mgr As String
+    Dim sel As String
+    Dim key As String
+    Dim i As Long
+    Dim n As Long
+    Dim r As Long
+    Dim total As Double
+    Dim arr As Variant
+    Dim headers As Variant
+    Dim unitLabel As String
+    Dim rn As Long
+
+    If ws Is Nothing Then Set ws = U2_GetSheet(U2_CurrentBook(), U2_SH_EXPENSE)
+    If ws Is Nothing Then Exit Sub
+    U2_EnsureDataLoaded
+    Set opt = U2_ReadOptions()
+    unit = U2_UnitValue(opt("Unit"))
+    unitLabel = CStr(opt("Unit"))
+    mgr = U2_SelectedManager(ws)
+    sel = U2_SelectedItem(ws)
+    If sel = "" Then sel = "전체"
+    key = U2_FindListKey(ws, sel)
+    rn = U2_EffectiveRound(opt)
+
+    If ws.AutoFilterMode Then ws.AutoFilterMode = False
+    Dim prevLast As Long
+    prevLast = ws.Cells(ws.Rows.Count, "F").End(xlUp).Row
+    If prevLast < 7 Then prevLast = 7
+    ws.Range("F5:AG" & prevLast).Clear
+    For i = 1 To gU2ExpN
+        If U2_ExpPassSummary(gU2Exp(i), opt) Then
+            If mgr = "" Or mgr = "전체" Or gU2Exp(i).Manager = mgr Then
+                If U2_ItemMatch(gU2Exp(i), key) Then
+                    n = n + 1
+                    total = total + gU2Exp(i).ReqAmt
+                End If
+            End If
+        End If
+    Next i
+
+    With ws.Range("F5:AG5")
+        .Merge
+        .Value2 = "담당자: " & IIf(mgr = "", "전체", mgr) & _
+                  "   |   선택: " & sel & _
+                  "   |   차수: " & IIf(rn = 0, "본예산", CStr(rn) & "차 추경") & _
+                  "   |   합계 " & Format$(total / unit, "#,##0") & " " & unitLabel & _
+                  "   |   " & Format$(n, "#,##0") & "건"
+        .Font.Name = "맑은 고딕"
+        .Font.Size = 10
+        .Font.Bold = True
+        .Font.Color = C_NAVY
+        .Interior.Color = RGB(240, 247, 255)
+        .VerticalAlignment = xlCenter
+        .IndentLevel = 1
+    End With
+
+    headers = Array("세부사업", "세세부사업", "산출1", "산출2", "산출3", "산출4", "세목코드", "원가통계목", _
+                    "예산요구액", "재원_특교", "재원_국고", "재원_비법정", "재원_기타", "재원_자체", "재원_합계", _
+                    "업무담당자", "홍보방법", "홍보예산", "신규", "공약", "명시이월", "사업기간", "명시이월액", "명시이월재원", _
+                    "본청주관", "사전절차", "설명사항", "수정여부")
+    U2_Header ws, 6, 6, headers
+
+    If n > 0 Then
+        ReDim arr(1 To n, 1 To 28)
+        r = 0
+        For i = 1 To gU2ExpN
+            If U2_ExpPassSummary(gU2Exp(i), opt) Then
+                If mgr = "" Or mgr = "전체" Or gU2Exp(i).Manager = mgr Then
+                    If U2_ItemMatch(gU2Exp(i), key) Then
+                        r = r + 1
+                        arr(r, 1) = gU2Exp(i).SubBiz
+                        arr(r, 2) = gU2Exp(i).SubSubBiz
+                        arr(r, 3) = U2_LabelText(gU2Exp(i).Calc1)
+                        arr(r, 4) = U2_LabelText(gU2Exp(i).Calc2)
+                        arr(r, 5) = U2_LabelText(gU2Exp(i).Calc3)
+                        arr(r, 6) = U2_LabelText(gU2Exp(i).Calc4)
+                        arr(r, 7) = gU2Exp(i).ItemCode
+                        arr(r, 8) = gU2Exp(i).CostStat
+                        arr(r, 9) = gU2Exp(i).ReqAmt / unit
+                        arr(r, 10) = gU2Exp(i).FundSpecial / unit
+                        arr(r, 11) = gU2Exp(i).FundNational / unit
+                        arr(r, 12) = gU2Exp(i).FundNonStatutory / unit
+                        arr(r, 13) = gU2Exp(i).FundOther / unit
+                        arr(r, 14) = gU2Exp(i).FundSelf / unit
+                        arr(r, 15) = gU2Exp(i).FundTotal / unit
+                        arr(r, 16) = gU2Exp(i).Manager
+                        arr(r, 17) = gU2Exp(i).PromoMethod
+                        arr(r, 18) = U2_Mark(gU2Exp(i).PromoBudget)
+                        arr(r, 19) = U2_Mark(gU2Exp(i).IsNew)
+                        arr(r, 20) = U2_Mark(gU2Exp(i).IsPromise)
+                        arr(r, 21) = U2_Mark(gU2Exp(i).IsCarryover)
+                        arr(r, 22) = gU2Exp(i).CarryPeriod
+                        arr(r, 23) = gU2Exp(i).CarryAmt / unit
+                        arr(r, 24) = gU2Exp(i).CarryFund
+                        arr(r, 25) = U2_Mark(gU2Exp(i).IsCentral)
+                        arr(r, 26) = gU2Exp(i).PreSummary
+                        arr(r, 27) = gU2Exp(i).Desc
+                        arr(r, 28) = gU2Exp(i).Revised
+                    End If
+                End If
+            End If
+        Next i
+        ws.Range("F7").Resize(n, 28).Value2 = arr
+    Else
+        ws.Range("F7").Value2 = "선택한 조건에 맞는 세출 자료가 없습니다."
+    End If
+
+    With ws.Range("F6:AG" & (6 + Application.Max(1, n)))
+        .Borders.LineStyle = xlContinuous
+        .Borders.Color = C_LINE
+        .Font.Name = "맑은 고딕"
+        .Font.Size = 9
+        .VerticalAlignment = xlCenter
+    End With
+    ws.Range("F6:AG6").Interior.Color = C_NAVY
+    ws.Range("F6:AG6").Font.Color = RGB(255, 255, 255)
+    ws.Range("F6:AG6").Font.Bold = True
+    ws.Range("F6:AG6").WrapText = True
+    ws.Rows(6).RowHeight = 32
+
+    If n > 0 Then
+        ws.Range("N7:T" & (6 + n)).NumberFormat = "#,##0"
+        ws.Range("AB7:AB" & (6 + n)).NumberFormat = "#,##0"
+        ws.Range("W7:W" & (6 + n)).Interior.Color = RGB(255, 248, 225)
+        ws.Range("X7:X" & (6 + n)).Interior.Color = RGB(232, 245, 233)
+        ws.Range("Y7:Y" & (6 + n)).Interior.Color = RGB(255, 248, 225)
+        ws.Range("Z7:Z" & (6 + n)).Interior.Color = RGB(227, 242, 253)
+        ws.Range("AD7:AD" & (6 + n)).Interior.Color = RGB(243, 229, 245)
+        ws.Range("F6:AG" & (6 + n)).AutoFilter
+    End If
+
     ws.Activate
     ActiveWindow.FreezePanes = False
-    ws.Range("G7").Select
+    ws.Range("F21").Select
     ActiveWindow.FreezePanes = True
 End Sub
 
-Private Sub U2_ColorFlagColumns(ByVal ws As Worksheet, ByVal firstRow As Long, ByVal n As Long)
-    If n <= 0 Then Exit Sub
-    With ws.Range("V" & firstRow & ":V" & (firstRow + n - 1))
-        .Interior.Color = RGB(255, 242, 230)
-        .HorizontalAlignment = xlCenter
-    End With
-    With ws.Range("W" & firstRow & ":W" & (firstRow + n - 1))
-        .Interior.Color = RGB(232, 245, 233)
-        .HorizontalAlignment = xlCenter
-    End With
-    With ws.Range("X" & firstRow & ":X" & (firstRow + n - 1))
-        .Interior.Color = RGB(255, 248, 225)
-        .HorizontalAlignment = xlCenter
-    End With
-    With ws.Range("Y" & firstRow & ":Y" & (firstRow + n - 1))
-        .Interior.Color = RGB(227, 242, 253)
-        .HorizontalAlignment = xlCenter
-    End With
-    With ws.Range("AC" & firstRow & ":AC" & (firstRow + n - 1))
-        .Interior.Color = RGB(243, 229, 245)
-        .HorizontalAlignment = xlCenter
-    End With
-End Sub
+Private Function U2_FindListKey(ByVal ws As Worksheet, ByVal sel As String) As String
+    Dim r As Long
+    Dim lastR As Long
+    lastR = ws.Cells(ws.Rows.Count, "BA").End(xlUp).Row
+    For r = 2 To lastR
+        If U2_CellText(ws.Cells(r, "BA").Value2) = sel Then
+            U2_FindListKey = U2_CellText(ws.Cells(r, "BC").Value2)
+            Exit Function
+        End If
+    Next r
+    U2_FindListKey = "ALL"
+End Function
+
+Private Function U2_SelectedManager(ByVal ws As Worksheet) As String
+    Dim v As Variant
+    Dim idx As Long
+    v = ws.Range("AZ1").Value2
+    If IsNumeric(v) Then
+        idx = CLng(v)
+        If idx >= 1 Then U2_SelectedManager = U2_CellText(ws.Cells(1 + idx, "AY").Value2)
+    Else
+        U2_SelectedManager = U2_CellText(v)
+    End If
+    If U2_SelectedManager = "" Then U2_SelectedManager = "전체"
+End Function
+
+Private Function U2_SelectedItem(ByVal ws As Worksheet) As String
+    Dim v As Variant
+    Dim idx As Long
+    v = ws.Range("BB1").Value2
+    If IsNumeric(v) Then
+        idx = CLng(v)
+        If idx >= 1 Then U2_SelectedItem = U2_CellText(ws.Cells(1 + idx, "BA").Value2)
+    Else
+        U2_SelectedItem = U2_CellText(v)
+    End If
+    If U2_SelectedItem = "" Then U2_SelectedItem = "전체"
+End Function
+
+Private Function U2_ItemMatch(ByRef rec As U2ExpenseRec, ByVal key As String) As Boolean
+    If key = "" Or key = "ALL" Then
+        U2_ItemMatch = True
+    ElseIf Left$(key, 2) = "S|" Then
+        U2_ItemMatch = (rec.SubBiz = Mid$(key, 3))
+    ElseIf Left$(key, 3) = "SS|" Then
+        U2_ItemMatch = (rec.SubSubBiz = Mid$(key, 4))
+    Else
+        U2_ItemMatch = True
+    End If
+End Function
 
 ' ------------------------------------------------------------------ 요약 시트
 
@@ -904,14 +1077,15 @@ Private Sub U2_BuildSummary(ByVal wb As Workbook)
 
     On Error GoTo EH
     gU2Trace = "reset"
-    Set ws = U2_ResetSheet(wb, U2_SH_SUMMARY)
+    Set ws = U2_ResetSheet(wb, U2_SH_GUIDE)
+    U2_BuildNav ws
     Set opt = U2_ReadOptions()
     unit = U2_UnitValue(opt("Unit"))
     maxR = U2_MaxRound()
 
-    U2_Title ws, "UBIS 예산 요약", U2_SummarySubtitle(), 17
-    ws.Rows(4).RowHeight = 20
-    ws.Rows(5).RowHeight = 30
+    U2_Title ws, "UBIS 예산 관리", U2_SummarySubtitle(), 17
+    ws.Rows(6).RowHeight = 20
+    ws.Rows(7).RowHeight = 30
 
     For i = 1 To gU2IncN
         If U2_IncPassSummary(gU2Inc(i), opt) Then incTotal = incTotal + gU2Inc(i).FinalAmt
@@ -929,20 +1103,20 @@ Private Sub U2_BuildSummary(ByVal wb As Workbook)
         End If
     Next i
 
-    U2_Kpi ws, 4, 2, "세입 최종예산", incTotal / unit, C_BLUE
-    U2_Kpi ws, 4, 4, "세출 예산요구액", expTotal / unit, C_NAVY
-    U2_Kpi ws, 4, 6, "세입 - 세출", (incTotal - expTotal) / unit, IIf(incTotal >= expTotal, C_GREEN, RGB(200, 60, 60))
-    U2_Kpi ws, 4, 8, "신규사업", newAmt / unit, C_GREEN
-    U2_Kpi ws, 4, 10, "공약사업", proAmt / unit, C_ORANGE
-    U2_Kpi ws, 4, 12, "홍보예산", promoAmt / unit, RGB(180, 120, 0)
-    U2_Kpi ws, 4, 14, "명시이월", carryAmt / unit, C_BLUE
-    U2_Kpi ws, 4, 16, "본청주관", centralAmt / unit, C_PURPLE
+    U2_Kpi ws, 6, 2, "세입 최종예산", incTotal / unit, C_BLUE
+    U2_Kpi ws, 6, 4, "세출 예산요구액", expTotal / unit, C_NAVY
+    U2_Kpi ws, 6, 6, "세입 - 세출", (incTotal - expTotal) / unit, IIf(incTotal >= expTotal, C_GREEN, RGB(200, 60, 60))
+    U2_Kpi ws, 6, 8, "신규사업", newAmt / unit, C_GREEN
+    U2_Kpi ws, 6, 10, "공약사업", proAmt / unit, C_ORANGE
+    U2_Kpi ws, 6, 12, "홍보예산", promoAmt / unit, RGB(180, 120, 0)
+    U2_Kpi ws, 6, 14, "명시이월", carryAmt / unit, C_BLUE
+    U2_Kpi ws, 6, 16, "본청주관", centralAmt / unit, C_PURPLE
 
     ' 차수별 요약
-    ws.Cells(9, 2).Value2 = "차수별 요약"
-    U2_SectionTitle ws, "B9:H9", "차수별 요약"
-    U2_Header ws, 10, 2, Array("차수", "세입", "세출", "차이", "세출건수")
-    r = 11
+    ws.Cells(11, 2).Value2 = "차수별 요약"
+    U2_SectionTitle ws, "B11:H11", "차수별 요약"
+    U2_Header ws, 12, 2, Array("차수", "세입", "세출", "차이", "세출건수")
+    r = 13
     For rs = 0 To maxR
         incR = 0: expR = 0
         n = 0
@@ -962,8 +1136,8 @@ Private Sub U2_BuildSummary(ByVal wb As Workbook)
         ws.Cells(r, 6).Value2 = n
         r = r + 1
     Next rs
-    U2_FormatBlock ws, 10, 2, r - 1, 6
-    ws.Range(ws.Cells(11, 3), ws.Cells(r - 1, 5)).NumberFormat = "#,##0"
+    U2_FormatBlock ws, 12, 2, r - 1, 6
+    ws.Range(ws.Cells(13, 3), ws.Cells(r - 1, 5)).NumberFormat = "#,##0"
 
     ' 세부사업 TOP 10
     Set dSub = CreateObject("Scripting.Dictionary")
@@ -976,9 +1150,9 @@ Private Sub U2_BuildSummary(ByVal wb As Workbook)
         End If
     Next i
     gU2Trace = "top sub"
-    U2_SectionTitle ws, "J9:P9", "세부사업 TOP 10"
-    U2_Header ws, 10, 10, Array("순위", "세부사업", "예산요구액", "비중")
-    r = 11
+    U2_SectionTitle ws, "J11:P11", "세부사업 TOP 10"
+    U2_Header ws, 12, 10, Array("순위", "세부사업", "예산요구액", "비중")
+    r = 13
     For Each k In dSub.Keys
         ws.Cells(r, 10).Value2 = 0
         ws.Cells(r, 11).Value2 = CStr(k)
@@ -986,16 +1160,16 @@ Private Sub U2_BuildSummary(ByVal wb As Workbook)
         If expTotal > 0 Then ws.Cells(r, 13).Value2 = U2_Num(dSub(k)) / expTotal
         r = r + 1
     Next k
-    If r > 11 Then
-        ws.Range(ws.Cells(11, 10), ws.Cells(r - 1, 13)).Sort _
-            Key1:=ws.Cells(11, 12), Order1:=xlDescending, Header:=xlNo
-        For i = 11 To r - 1
-            ws.Cells(i, 10).Value2 = i - 10
+    If r > 13 Then
+        ws.Range(ws.Cells(13, 10), ws.Cells(r - 1, 13)).Sort _
+            Key1:=ws.Cells(13, 12), Order1:=xlDescending, Header:=xlNo
+        For i = 13 To r - 1
+            ws.Cells(i, 10).Value2 = i - 12
         Next i
     End If
-    U2_FormatBlock ws, 10, 10, r - 1, 13
-    ws.Range(ws.Cells(11, 12), ws.Cells(r - 1, 12)).NumberFormat = "#,##0"
-    ws.Range(ws.Cells(11, 13), ws.Cells(r - 1, 13)).NumberFormat = "0.0%"
+    U2_FormatBlock ws, 12, 10, r - 1, 13
+    ws.Range(ws.Cells(13, 12), ws.Cells(r - 1, 12)).NumberFormat = "#,##0"
+    ws.Range(ws.Cells(13, 13), ws.Cells(r - 1, 13)).NumberFormat = "0.0%"
     gU2Trace = "fund"
     ' 재원별
     Set dFund = CreateObject("Scripting.Dictionary")
@@ -1013,47 +1187,47 @@ Private Sub U2_BuildSummary(ByVal wb As Workbook)
             dFund("자체") = dFund("자체") + gU2Exp(i).FundSelf
         End If
     Next i
-    U2_SectionTitle ws, "B24:H24", "재원별"
-    U2_Header ws, 25, 2, Array("재원", "금액", "비중")
-    r = 26
+    U2_SectionTitle ws, "B26:H26", "재원별"
+    U2_Header ws, 27, 2, Array("재원", "금액", "비중")
+    r = 28
     For Each k In dFund.Keys
         ws.Cells(r, 2).Value2 = k
         ws.Cells(r, 3).Value2 = U2_Num(dFund(k)) / unit
         If expTotal > 0 Then ws.Cells(r, 4).Value2 = U2_Num(dFund(k)) / expTotal
         r = r + 1
     Next k
-    U2_FormatBlock ws, 25, 2, r - 1, 4
-    ws.Range(ws.Cells(26, 3), ws.Cells(r - 1, 3)).NumberFormat = "#,##0"
-    ws.Range(ws.Cells(26, 4), ws.Cells(r - 1, 4)).NumberFormat = "0.0%"
+    U2_FormatBlock ws, 27, 2, r - 1, 4
+    ws.Range(ws.Cells(28, 3), ws.Cells(r - 1, 3)).NumberFormat = "#,##0"
+    ws.Range(ws.Cells(28, 4), ws.Cells(r - 1, 4)).NumberFormat = "0.0%"
 
     gU2Trace = "flags"
     ' 사업 유형별
-    U2_SectionTitle ws, "J24:P24", "사업 유형별"
-    U2_Header ws, 25, 10, Array("구분", "건수", "금액")
-    ws.Cells(26, 10).Value2 = "신규사업": ws.Cells(26, 11).Value2 = newCnt: ws.Cells(26, 12).Value2 = newAmt / unit
-    ws.Cells(27, 10).Value2 = "공약사업": ws.Cells(27, 11).Value2 = proCnt: ws.Cells(27, 12).Value2 = proAmt / unit
-    ws.Cells(28, 10).Value2 = "홍보예산": ws.Cells(28, 11).Value2 = promoCnt: ws.Cells(28, 12).Value2 = promoAmt / unit
-    ws.Cells(29, 10).Value2 = "명시이월": ws.Cells(29, 11).Value2 = carryCnt: ws.Cells(29, 12).Value2 = carryAmt / unit
-    ws.Cells(30, 10).Value2 = "본청주관": ws.Cells(30, 11).Value2 = centralCnt: ws.Cells(30, 12).Value2 = centralAmt / unit
-    ws.Cells(31, 10).Value2 = "사전절차": ws.Cells(31, 11).Value2 = preCnt: ws.Cells(31, 12).Value2 = preAmt / unit
-    U2_FormatBlock ws, 25, 10, 31, 12
-    ws.Range("L26:L31").NumberFormat = "#,##0"
+    U2_SectionTitle ws, "J26:P26", "사업 유형별"
+    U2_Header ws, 27, 10, Array("구분", "건수", "금액")
+    ws.Cells(32, 10).Value2 = "신규사업": ws.Cells(26, 11).Value2 = newCnt: ws.Cells(26, 12).Value2 = newAmt / unit
+    ws.Cells(33, 10).Value2 = "공약사업": ws.Cells(27, 11).Value2 = proCnt: ws.Cells(27, 12).Value2 = proAmt / unit
+    ws.Cells(32, 10).Value2 = "홍보예산": ws.Cells(28, 11).Value2 = promoCnt: ws.Cells(28, 12).Value2 = promoAmt / unit
+    ws.Cells(33, 10).Value2 = "명시이월": ws.Cells(29, 11).Value2 = carryCnt: ws.Cells(29, 12).Value2 = carryAmt / unit
+    ws.Cells(32, 10).Value2 = "본청주관": ws.Cells(30, 11).Value2 = centralCnt: ws.Cells(30, 12).Value2 = centralAmt / unit
+    ws.Cells(33, 10).Value2 = "사전절차": ws.Cells(31, 11).Value2 = preCnt: ws.Cells(31, 12).Value2 = preAmt / unit
+    U2_FormatBlock ws, 27, 10, 33, 12
+    ws.Range("L28:L33").NumberFormat = "#,##0"
 
     gU2Trace = "buttons"
-    U2_AddButton ws, "u2s_inc", "세입 보기", "income", 30, 500, 34, False
-    U2_AddButton ws, "u2s_exp", "세출 보기", "expense", 150, 500, 34, False
-    U2_AddButton ws, "u2s_opt", "옵션 설정", "options", 270, 500, 34, False
-    U2_AddButton ws, "u2s_pick", "파일 다시 선택", "pick", 390, 500, 34, False
-    U2_AddButton ws, "u2s_expsum", "세출 요약", "expense_summary", 660, 500, 34, False
-    U2_AddButton ws, "u2s_print", "인쇄", "print", 790, 500, 34, False
-
     ws.Columns("A").ColumnWidth = 3
     ws.Columns("B:H").ColumnWidth = 15
     ws.Columns("I").ColumnWidth = 3
     ws.Columns("J:P").ColumnWidth = 15
-    ws.Rows(3).RowHeight = 8
-    ws.Rows(8).RowHeight = 8
-    ws.Rows(23).RowHeight = 8
+    ws.Rows(5).RowHeight = 6
+    ws.Rows(10).RowHeight = 8
+    ws.Rows(25).RowHeight = 8
+    ws.Range("B36:P36").Merge
+    ws.Range("B36").Value2 = "담당자별 상세는 상단 [세출예산] 버튼에서 확인하세요."
+    ws.Range("B36").Font.Name = "맑은 고딕"
+    ws.Range("B36").Font.Size = 10
+    ws.Range("B36").Font.Color = C_SUB
+    ws.Range("B36").VerticalAlignment = xlCenter
+    ws.Range("B36").IndentLevel = 1
     Exit Sub
 
 EH:
@@ -1144,24 +1318,24 @@ End Sub
 
 Public Sub U2_ApplyFilters()
     Dim wb As Workbook
+    U2_EnsureDataLoaded
     Set wb = gU2Book
     If wb Is Nothing Then Set wb = U2_Book()
     If wb Is Nothing Then Exit Sub
     U2_BuildIncome wb
     U2_BuildExpense wb
     U2_BuildSummary wb
-    U2_ShowSheet wb, U2_SH_SUMMARY
+    U2_OnlyFourSheets wb
+    U2_ShowSheet wb, U2_SH_GUIDE
 End Sub
 
 Public Sub U2_ResetFilters()
     Dim ws As Worksheet
     Set ws = U2_GetSheet(gU2Book, U2_SH_OPTIONS)
     If ws Is Nothing Then Exit Sub
-    ws.Range("B5").Value2 = "전체"
-    ws.Range("B6").Value2 = "천원"
-    ws.Range("B9").Value2 = "전체"
-    ws.Range("B12").Value2 = "전체"
-    ws.Range("B13").Value2 = "전체"
+    ws.Range("B7").Value2 = "전체"
+    ws.Range("B8").Value2 = "천원"
+    ws.Range("B11").Value2 = "전체"
     ws.Range("B14").Value2 = "전체"
     ws.Range("B15").Value2 = "전체"
     ws.Range("B16").Value2 = "전체"
@@ -1169,6 +1343,8 @@ Public Sub U2_ResetFilters()
     ws.Range("B18").Value2 = "전체"
     ws.Range("B19").Value2 = "전체"
     ws.Range("B20").Value2 = "전체"
+    ws.Range("B21").Value2 = "전체"
+    ws.Range("B22").Value2 = "전체"
     U2_ApplyFilters
 End Sub
 
@@ -1185,18 +1361,18 @@ Public Function U2_ReadOptions() As Object
         Set U2_ReadOptions = d
         Exit Function
     End If
-    d("Round") = U2_OptText(ws.Range("B5").Value2, "전체")
-    d("Unit") = U2_OptText(ws.Range("B6").Value2, "천원")
-    d("IncItem") = U2_OptText(ws.Range("B9").Value2, "전체")
-    d("Dept") = U2_OptText(ws.Range("B12").Value2, "전체")
-    d("SubBiz") = U2_OptText(ws.Range("B13").Value2, "전체")
-    d("ItemCode") = U2_OptText(ws.Range("B14").Value2, "전체")
-    d("New") = U2_OptText(ws.Range("B15").Value2, "전체")
-    d("Promise") = U2_OptText(ws.Range("B16").Value2, "전체")
-    d("Promo") = U2_OptText(ws.Range("B17").Value2, "전체")
-    d("Carry") = U2_OptText(ws.Range("B18").Value2, "전체")
-    d("Central") = U2_OptText(ws.Range("B19").Value2, "전체")
-    d("Pre") = U2_OptText(ws.Range("B20").Value2, "전체")
+    d("Round") = U2_OptText(ws.Range("B7").Value2, "전체")
+    d("Unit") = U2_OptText(ws.Range("B8").Value2, "천원")
+    d("IncItem") = U2_OptText(ws.Range("B11").Value2, "전체")
+    d("Dept") = U2_OptText(ws.Range("B14").Value2, "전체")
+    d("SubBiz") = U2_OptText(ws.Range("B15").Value2, "전체")
+    d("ItemCode") = U2_OptText(ws.Range("B16").Value2, "전체")
+    d("New") = U2_OptText(ws.Range("B17").Value2, "전체")
+    d("Promise") = U2_OptText(ws.Range("B18").Value2, "전체")
+    d("Promo") = U2_OptText(ws.Range("B19").Value2, "전체")
+    d("Carry") = U2_OptText(ws.Range("B20").Value2, "전체")
+    d("Central") = U2_OptText(ws.Range("B21").Value2, "전체")
+    d("Pre") = U2_OptText(ws.Range("B22").Value2, "전체")
     Set U2_ReadOptions = d
 End Function
 
@@ -1406,6 +1582,28 @@ End Function
 
 ' ------------------------------------------------------------------ 공통 서식
 
+Public Function U2_CurrentBook() As Workbook
+    If gU2Book Is Nothing Then
+        On Error Resume Next
+        Set gU2Book = ActiveWorkbook
+        On Error GoTo 0
+    End If
+    Set U2_CurrentBook = gU2Book
+End Function
+
+Public Sub U2_OnlyFourSheets(ByVal wb As Workbook)
+    Dim ws As Worksheet
+    If U2_HasSheet(wb, U2_SH_GUIDE) Then wb.Worksheets(U2_SH_GUIDE).Activate
+    For Each ws In wb.Worksheets
+        Select Case ws.Name
+            Case U2_SH_GUIDE, U2_SH_OPTIONS, U2_SH_INCOME, U2_SH_EXPENSE
+                ws.Visible = xlSheetVisible
+            Case Else
+                ws.Visible = xlSheetVeryHidden
+        End Select
+    Next ws
+End Sub
+
 Public Sub U2_DeleteShapes(ByVal ws As Worksheet)
     Dim i As Long
     For i = ws.Shapes.Count To 1 Step -1
@@ -1421,6 +1619,7 @@ Public Function U2_ResetSheet(ByVal wb As Workbook, ByVal nm As String) As Works
         ws.Name = nm
     End If
     ws.Visible = xlSheetVisible
+    ws.Cells.UnMerge
     ws.Cells.Clear
     U2_DeleteShapes ws
     ws.Cells.Interior.Color = RGB(255, 255, 255)
@@ -1428,18 +1627,17 @@ Public Function U2_ResetSheet(ByVal wb As Workbook, ByVal nm As String) As Works
 End Function
 
 Public Sub U2_Title(ByVal ws As Worksheet, ByVal title As String, ByVal subtitle As String, ByVal lastCol As Long)
-    With ws.Range(ws.Cells(1, 1), ws.Cells(1, lastCol))
+    With ws.Range(ws.Cells(3, 1), ws.Cells(3, lastCol))
         .Merge
         .Value2 = title
         .Font.Name = "맑은 고딕"
-        .Font.Size = 20
+        .Font.Size = 18
         .Font.Bold = True
-        .Font.Color = RGB(255, 255, 255)
-        .Interior.Color = C_NAVY
+        .Font.Color = C_NAVY
         .VerticalAlignment = xlCenter
         .IndentLevel = 1
     End With
-    With ws.Range(ws.Cells(2, 1), ws.Cells(2, lastCol))
+    With ws.Range(ws.Cells(4, 1), ws.Cells(4, lastCol))
         .Merge
         .Value2 = subtitle
         .Font.Name = "맑은 고딕"
@@ -1448,9 +1646,37 @@ Public Sub U2_Title(ByVal ws As Worksheet, ByVal title As String, ByVal subtitle
         .VerticalAlignment = xlCenter
         .IndentLevel = 1
     End With
-    ws.Rows(1).RowHeight = 32
-    ws.Rows(2).RowHeight = 22
-    ws.Rows(3).RowHeight = 6
+    ws.Rows(2).RowHeight = 6
+    ws.Rows(3).RowHeight = 30
+    ws.Rows(4).RowHeight = 22
+End Sub
+
+Public Sub U2_BuildNav(ByVal ws As Worksheet)
+    Dim captions As Variant
+    Dim procs As Variant
+    Dim i As Long
+    Dim leftPos As Single
+
+    captions = Array("시작", "옵션", "세입예산", "세출예산", "파일 다시 선택", "사용 방법", "인쇄")
+    procs = Array("start", "options", "income", "expense", "pick", "help", "print")
+
+    ws.Range("A1:AG1").Clear
+    With ws.Range("A1:AG1")
+        .Interior.Color = C_NAVY
+        .RowHeight = 34
+    End With
+
+    leftPos = 8
+    For i = 0 To UBound(captions)
+        U2_AddButton ws, "u2nav_" & CStr(procs(i)), CStr(captions(i)), CStr(procs(i)), leftPos, 4, 26, False
+        ws.Shapes("u2nav_" & CStr(procs(i))).Placement = xlMove
+        ws.Shapes("u2nav_" & CStr(procs(i))).ZOrder msoBringToFront
+        leftPos = leftPos + Application.Max(90, Len(CStr(captions(i))) * 13) + 8
+    Next i
+
+    ws.Activate
+    ws.Range("A2").Select
+    ActiveWindow.FreezePanes = True
 End Sub
 
 Public Sub U2_Header(ByVal ws As Worksheet, ByVal r As Long, ByVal c As Long, ByVal headers As Variant)

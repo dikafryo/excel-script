@@ -10,8 +10,8 @@ Option Explicit
 
 Public Const U2_SH_GUIDE As String = "시작"
 Public Const U2_SH_SUMMARY As String = "요약"
-Public Const U2_SH_INCOME As String = "세입"
-Public Const U2_SH_EXPENSE As String = "세출"
+Public Const U2_SH_INCOME As String = "세입예산"
+Public Const U2_SH_EXPENSE As String = "세출예산"
 Public Const U2_SH_EXP_SUMMARY As String = "세출요약"
 Public Const U2_SH_OPTIONS As String = "옵션"
 Public Const U2_SH_INC_RAW As String = "_세입원본"
@@ -802,7 +802,7 @@ Private Function U2_MergedText(ByVal ws As Worksheet, ByVal r As Long, ByVal c A
     U2_MergedText = U2_CellText(v)
 End Function
 
-Private Function U2_CellText(ByVal v As Variant) As String
+Public Function U2_CellText(ByVal v As Variant) As String
     If IsError(v) Then
         U2_CellText = ""
     ElseIf IsEmpty(v) Then
@@ -950,6 +950,116 @@ Private Function U2_FileName(ByVal fp As String) As String
 End Function
 
 ' ------------------------------------------------------------------ 숨김 원본 시트 쓰기
+
+Public Sub U2_EnsureDataLoaded()
+    Dim wb As Workbook
+    Dim ws As Worksheet
+
+    If gU2Book Is Nothing Then
+        On Error Resume Next
+        Set gU2Book = ActiveWorkbook
+        On Error GoTo 0
+    End If
+    Set wb = gU2Book
+    If wb Is Nothing Then Exit Sub
+
+    If gU2IncN = 0 Then
+        Set ws = U2_GetSheet(wb, U2_SH_INC_RAW, False)
+        If Not ws Is Nothing Then U2_LoadIncomeSheet ws
+    End If
+    If gU2ExpN = 0 Then
+        Set ws = U2_GetSheet(wb, U2_SH_EXP_RAW, False)
+        If Not ws Is Nothing Then U2_LoadExpenseSheet ws
+    End If
+End Sub
+
+Private Sub U2_LoadIncomeSheet(ByVal ws As Worksheet)
+    Dim lastR As Long
+    Dim r As Long
+    Dim i As Long
+    lastR = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    If lastR < 2 Then Exit Sub
+    gU2IncN = lastR - 1
+    ReDim gU2Inc(1 To gU2IncN)
+    For r = 2 To lastR
+        i = r - 1
+        gU2Inc(i).Yr = CLng(U2_Num(ws.Cells(r, 1).Value2))
+        gU2Inc(i).RoundNo = CLng(U2_Num(ws.Cells(r, 2).Value2))
+        gU2Inc(i).RoundName = U2_CellText(ws.Cells(r, 3).Value2)
+        gU2Inc(i).Jang = U2_CellText(ws.Cells(r, 4).Value2)
+        gU2Inc(i).Gwan = U2_CellText(ws.Cells(r, 5).Value2)
+        gU2Inc(i).Hang = U2_CellText(ws.Cells(r, 6).Value2)
+        gU2Inc(i).Mok = U2_CellText(ws.Cells(r, 7).Value2)
+        gU2Inc(i).Item = U2_CellText(ws.Cells(r, 8).Value2)
+        gU2Inc(i).Dept = U2_CellText(ws.Cells(r, 9).Value2)
+        gU2Inc(i).PrevAmt = U2_Num(ws.Cells(r, 10).Value2)
+        gU2Inc(i).ReqAmt = U2_Num(ws.Cells(r, 11).Value2)
+        gU2Inc(i).FinalAmt = U2_Num(ws.Cells(r, 12).Value2)
+        gU2Inc(i).ChangeAmt = U2_Num(ws.Cells(r, 13).Value2)
+        gU2Inc(i).Note = U2_CellText(ws.Cells(r, 14).Value2)
+        gU2Inc(i).SrcFile = U2_CellText(ws.Cells(r, 15).Value2)
+        gU2Inc(i).SrcRow = CLng(U2_Num(ws.Cells(r, 16).Value2))
+    Next r
+End Sub
+
+Private Sub U2_LoadExpenseSheet(ByVal ws As Worksheet)
+    Dim lastR As Long
+    Dim r As Long
+    Dim i As Long
+    lastR = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    If lastR < 2 Then Exit Sub
+    gU2ExpN = lastR - 1
+    ReDim gU2Exp(1 To gU2ExpN)
+    For r = 2 To lastR
+        i = r - 1
+        gU2Exp(i).Yr = CLng(U2_Num(ws.Cells(r, 1).Value2))
+        gU2Exp(i).RoundNo = CLng(U2_Num(ws.Cells(r, 2).Value2))
+        gU2Exp(i).RoundName = U2_CellText(ws.Cells(r, 3).Value2)
+        gU2Exp(i).Dept = U2_CellText(ws.Cells(r, 4).Value2)
+        gU2Exp(i).Policy = U2_CellText(ws.Cells(r, 5).Value2)
+        gU2Exp(i).UnitBiz = U2_CellText(ws.Cells(r, 6).Value2)
+        gU2Exp(i).SubBiz = U2_CellText(ws.Cells(r, 7).Value2)
+        gU2Exp(i).SubSubBiz = U2_CellText(ws.Cells(r, 8).Value2)
+        gU2Exp(i).Calc1 = U2_CellText(ws.Cells(r, 9).Value2)
+        gU2Exp(i).Calc2 = U2_CellText(ws.Cells(r, 10).Value2)
+        gU2Exp(i).Calc3 = U2_CellText(ws.Cells(r, 11).Value2)
+        gU2Exp(i).Calc4 = U2_CellText(ws.Cells(r, 12).Value2)
+        gU2Exp(i).ItemCode = U2_CellText(ws.Cells(r, 13).Value2)
+        gU2Exp(i).CostStat = U2_CellText(ws.Cells(r, 14).Value2)
+        gU2Exp(i).ReqAmt = U2_Num(ws.Cells(r, 15).Value2)
+        gU2Exp(i).BaseAmt = U2_Num(ws.Cells(r, 16).Value2)
+        gU2Exp(i).SuppAmt = U2_Num(ws.Cells(r, 17).Value2)
+        gU2Exp(i).FundSpecial = U2_Num(ws.Cells(r, 18).Value2)
+        gU2Exp(i).FundNational = U2_Num(ws.Cells(r, 19).Value2)
+        gU2Exp(i).FundNonStatutory = U2_Num(ws.Cells(r, 20).Value2)
+        gU2Exp(i).FundOther = U2_Num(ws.Cells(r, 21).Value2)
+        gU2Exp(i).FundSelf = U2_Num(ws.Cells(r, 22).Value2)
+        gU2Exp(i).FundTotal = U2_Num(ws.Cells(r, 23).Value2)
+        gU2Exp(i).Manager = U2_CellText(ws.Cells(r, 24).Value2)
+        gU2Exp(i).PromoMethod = U2_CellText(ws.Cells(r, 25).Value2)
+        gU2Exp(i).PromoBudget = U2_CellText(ws.Cells(r, 26).Value2)
+        gU2Exp(i).IsNew = U2_CellText(ws.Cells(r, 27).Value2)
+        gU2Exp(i).IsPromise = U2_CellText(ws.Cells(r, 28).Value2)
+        gU2Exp(i).IsCarryover = U2_CellText(ws.Cells(r, 29).Value2)
+        gU2Exp(i).CarryPeriod = U2_CellText(ws.Cells(r, 30).Value2)
+        gU2Exp(i).CarryAmt = U2_Num(ws.Cells(r, 31).Value2)
+        gU2Exp(i).CarryFund = U2_CellText(ws.Cells(r, 32).Value2)
+        gU2Exp(i).IsCentral = U2_CellText(ws.Cells(r, 33).Value2)
+        gU2Exp(i).Pre1 = U2_CellText(ws.Cells(r, 34).Value2)
+        gU2Exp(i).Pre2 = U2_CellText(ws.Cells(r, 35).Value2)
+        gU2Exp(i).Pre3 = U2_CellText(ws.Cells(r, 36).Value2)
+        gU2Exp(i).Pre4 = U2_CellText(ws.Cells(r, 37).Value2)
+        gU2Exp(i).Pre5 = U2_CellText(ws.Cells(r, 38).Value2)
+        gU2Exp(i).Pre6 = U2_CellText(ws.Cells(r, 39).Value2)
+        gU2Exp(i).Pre7 = U2_CellText(ws.Cells(r, 40).Value2)
+        gU2Exp(i).Pre8 = U2_CellText(ws.Cells(r, 41).Value2)
+        gU2Exp(i).PreSummary = U2_CellText(ws.Cells(r, 42).Value2)
+        gU2Exp(i).Desc = U2_CellText(ws.Cells(r, 43).Value2)
+        gU2Exp(i).Revised = U2_CellText(ws.Cells(r, 44).Value2)
+        gU2Exp(i).SrcFile = U2_CellText(ws.Cells(r, 45).Value2)
+        gU2Exp(i).SrcRow = CLng(U2_Num(ws.Cells(r, 46).Value2))
+    Next r
+End Sub
 
 Public Sub U2_WriteMaster()
     Dim wb As Workbook

@@ -22,6 +22,7 @@ Public Sub U2_Start(Optional ByVal pick As Boolean = True)
 
     U2_BuildGuide wb
     U2_BuildOptions wb, True
+    U2_OnlyFourSheets wb
 
     Application.ScreenUpdating = True
     Application.DisplayAlerts = True
@@ -58,7 +59,7 @@ Public Sub U2_PickAndImport()
         Application.ScreenUpdating = True
         Application.DisplayAlerts = True
         MsgBox msg, vbExclamation, "UBIS 예산"
-        U2_ShowSheet gU2Book, U2_SH_GUIDE
+        U2_ShowSheet U2_CurrentBook(), U2_SH_GUIDE
         Exit Sub
     End If
 
@@ -66,7 +67,7 @@ Public Sub U2_PickAndImport()
     Application.ScreenUpdating = True
     Application.DisplayAlerts = True
 
-    MsgBox msg & vbCrLf & vbCrLf & "요약 화면에서 결과를 확인하세요.", vbInformation, "UBIS 예산"
+    MsgBox msg & vbCrLf & vbCrLf & "시작 화면에서 결과를 확인하세요.", vbInformation, "UBIS 예산"
 End Sub
 
 ' ------------------------------------------------------------------ 버튼
@@ -137,15 +138,15 @@ Public Sub U2_Dispatch(ByVal proc As String)
         Case "pick"
             U2_PickAndImport
         Case "options"
-            U2_ShowSheet gU2Book, U2_SH_OPTIONS
-        Case "summary"
-            U2_ShowSheet gU2Book, U2_SH_SUMMARY
+            U2_ShowSheet U2_CurrentBook(), U2_SH_OPTIONS
+        Case "summary", "start"
+            U2_ShowSheet U2_CurrentBook(), U2_SH_GUIDE
         Case "income"
-            U2_ShowSheet gU2Book, U2_SH_INCOME
+            U2_ShowSheet U2_CurrentBook(), U2_SH_INCOME
         Case "expense"
-            U2_ShowSheet gU2Book, U2_SH_EXPENSE
-        Case "expense_summary"
-            U2_ShowSheet gU2Book, U2_SH_EXP_SUMMARY
+            U2_ShowSheet U2_CurrentBook(), U2_SH_EXPENSE
+        Case "help"
+            U2_ShowHelp
         Case "apply"
             U2_ApplyFilters
         Case "reset"
@@ -157,6 +158,18 @@ Public Sub U2_Dispatch(ByVal proc As String)
         Case Else
             MsgBox "알 수 없는 버튼입니다: " & proc, vbExclamation, "UBIS 예산"
     End Select
+End Sub
+
+Public Sub U2_ShowHelp()
+    MsgBox "UBIS 예산 파일 내려받기" & vbCrLf & vbCrLf & _
+           "[세입예산]" & vbCrLf & _
+           "1. UBIS > 세입 > 세입요구 > 본예산 > 조회 > 세입예산요구서 클릭" & vbCrLf & _
+           "2. 추경이 있으면 세입 > 세입요구 > 추경예산(1차, 2차...) > 조회 > 세입예산요구서 클릭" & vbCrLf & vbCrLf & _
+           "[세출예산]" & vbCrLf & _
+           "1. UBIS > 세출 > 세출요구 > 본예산 > 조회 > 세출예산요구서 클릭" & vbCrLf & _
+           "2. 추경이 있으면 세출 > 세출요구 > 추경예산(1차, 2차...) > 조회 > 세출예산요구서 클릭" & vbCrLf & vbCrLf & _
+           "내려받은 파일을 모두 선택한 뒤 [파일 선택하고 분석하기]를 누르세요.", _
+           vbInformation, "UBIS 예산 사용 방법"
 End Sub
 
 Public Sub U2_Print()
